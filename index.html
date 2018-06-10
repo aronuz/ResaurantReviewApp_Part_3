@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head><!-- add viewport meta -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
+  <link rel="stylesheet" href="css/styles.css">
+  <title>Restaurant Reviews</title>
+</head>
+
+<body><!-- add skip link -->
+  <header>
+    <a href="#maincontent" class="skip-to-main">Proceed to main section</a>
+    
+    <div id="menu_div">
+     <a id="menu">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M2 6h20v3H2zm0 5h20v3H2zm0 5h20v3H2z"></path>
+          </svg>
+      </a>      
+    </div>
+    
+    <nav>
+      <h1><a href="/">Restaurant Reviews</a></h1>
+    </nav>
+  </header>
+
+  <main id="maincontent">
+   <div class="container">
+     <div class="box box_map" style="">
+        <section id="map-container">
+          <div id="map" style=""></div>
+        </section>
+    </div>
+    <div class="box box_filters" style="">
+      <section>
+          <div class="filter-options">
+            <h2>Filter Results</h2><!-- add aria labels -->
+            <select aria-label="select neighborhood" id="neighborhoods-select" name="neighborhoods" onchange="updateRestaurants()">
+              <option aria-label="all neighborhoods" value="all">All Neighborhoods</option>
+            </select>
+            <select aria-label="select cuisine" id="cuisines-select" name="cuisines" onchange="updateRestaurants()">
+              <option aria-label="all cuisines" value="all">All Cuisines</option>
+            </select>
+          </div>
+      </section>
+      </div>
+     <div class="box box_resaurants" style="display: block">
+         <section>
+          <ul id="restaurants-list"></ul>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script type="application/javascript" charset="utf-8" src="js/dbhelper.js"></script>
+  <script type="application/javascript" charset="utf-8" src="js/main.js"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA-X9vPVc6-iXGUr68TQBd95cAbsvdwGoA&libraries=places&callback=initMap"></script>
+
+
+  <footer id="footer">
+    Copyright (c) 2017 <a href="/"><strong>Restaurant Reviews</strong></a> All Rights Reserved.
+  </footer>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      addRemoveList();
+    });
+    window.addEventListener('resize', addRemoveList);
+  </script>
+  
+  <script src="sw_register.js"></script>
+
+</body>
+
+</html>
