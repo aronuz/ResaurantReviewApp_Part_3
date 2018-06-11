@@ -62,14 +62,8 @@ self.addEventListener("install", function(event) {
 
 self.addEventListener("fetch", function(event) {
 	console.log('Fetching');
-  
-  /*if (event.request.method !== 'GET') {
-  
-    console.log('WORKER: fetch event ignored.', event.request.method, event.request.url);
-    return;
-  }*/
- 
-	event.respondWith(
+
+    event.respondWith(
 		caches.match(event.request).then(function(cached) {       
 			var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
       
@@ -79,7 +73,7 @@ self.addEventListener("fetch", function(event) {
 			function networkFetch(response) {
 				var cacheCopy = response.clone();
 
-				console.log('Response fetched from network.', event.request.url);
+				console.log('fetched from network.', event.request.url);
 
 				caches.open('reviews-v' + version_num).then(function add(cache) {
 					cache.put(event.request, cacheCopy);
