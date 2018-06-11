@@ -14,6 +14,15 @@
   <!-- Beginning header -->
   <header>
     <a href="#maincontent" class="skip-to-main" tabindex="0">Proceed to main section</a>
+    
+    <div id="menu_div">
+     <a id="menu">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M2 6h20v3H2zm0 5h20v3H2zm0 5h20v3H2z"></path>
+          </svg>
+      </a>       
+    </div>
+    
     <!-- Beginning nav -->
     <nav>
       <h1><a href="/">Restaurant Reviews</a></h1>
@@ -30,27 +39,31 @@
 
   <!-- Beginning main -->
   <main id="maincontent" tabindex="-1">
-    <!-- Beginning map -->
-    <section id="map-container">
-      <div id="map"></div>
-    </section>
-    <!-- End map -->
-    <!-- Beginning restaurant -->
-    <section id="restaurant-container">
-      <h1 aria-label="restaurant name" id="restaurant-name"></h1>
-      <img id="restaurant-img">
-      <p aria-label="restaurant cuisine" id="restaurant-cuisine"></p>
-      <p  aria-label="restaurant address" id="restaurant-address"></p>
-      <div aria-label="restaurant hours">
-      	<table id="restaurant-hours"></table>
-      </div>
-    </section>
-    <!-- end restaurant -->
-    <!-- Beginning reviews -->
-    <section id="reviews-container">
-      <ul id="reviews-list"></ul>
-    </section>
-    <!-- End reviews -->
+     <div id="map_div">
+      <!-- Beginning map -->
+        <section id="map-container">
+          <div id="map"></div>
+        </section>
+      <!-- End map -->
+    </div>
+    <div id="main_container">
+      <!-- Beginning restaurant -->
+      <section id="restaurant-container">
+        <h1 aria-label="restaurant name" id="restaurant-name"></h1>
+        <img id="restaurant-img">
+        <p aria-label="restaurant cuisine" id="restaurant-cuisine"></p>
+        <p  aria-label="restaurant address" id="restaurant-address"></p>
+        <div aria-label="restaurant hours">
+          <table id="restaurant-hours"></table>
+        </div>
+      </section>
+      <!-- end restaurant -->
+      <!-- Beginning reviews -->
+      <section id="reviews-container">
+        <ul id="reviews-list"></ul>
+      </section>
+      <!-- End reviews -->
+    </div>
   </main>
   <!-- End main -->
 
