@@ -1,7 +1,10 @@
 var version_num = '1';
+var old_caches = [];
 
 cacheScope = [
 		'/',
+        '/index.html',
+        '/restaurant.html',
 		'/css/styles.css',
 		'/images/1-200_small.jpg',
 		'/images/2-200_small.jpg',
@@ -38,16 +41,25 @@ cacheScope = [
 		'/js/restaurant_info.js'
 	]
 
-self.addEventListener("install", function(event) {
-  
-    return new Promise.all(
-        caches.keys().then(function (cacheKeys) {            
-            cacheKeys.filter(function (cacheName) {
-                return cache.startsWith("reviews-v");
-            }).map(function (cacheName) {
-                version_num=cacheName.substr(cacheName.indexOf("-v") + 2);
-            })  
-        })
+self.addEventListener("install", function(event) {     
+      
+    //return next to last version number for new worker
+    event.waitUntil(
+        caches.keys().then(function (keys) {     
+          return Promise.all(
+            old_caches = keys.filter(function (key) {
+                return key.startsWith("reviews-v");
+            })
+          );
+          old_caches.forEach(function (key, index) {
+            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+            old_caches[index] = version_num;   
+          })
+          //get latest version number and add next one
+          version_num = (Math.max.apply(Math, old_caches)+ 1).toString();
+        }).then(function() {
+			console.log("install version_num:" + version_num);
+		})
     );
   
 	console.log('SW installing');
@@ -62,7 +74,26 @@ self.addEventListener("install", function(event) {
 
 self.addEventListener("fetch", function(event) {
 	console.log('Fetching');
-
+  
+    //return next to last number for activated worker
+    event.waitUntil(
+        caches.keys().then(function (keys) {     
+          return Promise.all(
+            old_caches = keys.filter(function (key) {
+                return key.startsWith("reviews-v");
+            })
+          );
+          old_caches.forEach(function (key, index) {
+            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+            old_caches[index] = version_num;   
+          })
+            //get latest version number
+          version_num = (Math.max.apply(Math, old_caches)).toString();
+        }).then(function() {
+			console.log("fetch version_num:" + version_num);
+		})
+    );
+  
     event.respondWith(
 		caches.match(event.request).then(function(cached) {       
 			var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
@@ -99,14 +130,33 @@ self.addEventListener("fetch", function(event) {
 
 self.addEventListener("activate", function(event) {
 	console.log('Activating SW');
+  
+    //return next to last number for installed worker
+    event.waitUntil(
+        caches.keys().then(function (keys) {     
+          return Promise.all(
+            old_caches = keys.filter(function (key) {
+                return key.startsWith("reviews-v");
+            })
+          );
+          old_caches.forEach(function (key, index) {
+            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+            old_caches[index] = version_num;   
+          })
+          //get latest version number
+          version_num = (Math.max.apply(Math, old_caches)).toString();
+        }).then(function() {
+			console.log("activate version_num:" + version_num);
+		})
+    );
 
 	event.waitUntil(
 		caches.keys().then(function (keys) {
 			return Promise.all(
 				keys.filter(function (key) {
-					return key.startsWith('reviews-v') && !key.endsWith(version_num);
+					return key.startsWith("reviews-v") && !key.endsWith(version_num);
 				}).map(function (key) {
-					return caches.delete(key);
+					return key.delete(key);
 				})
 			);
 		}).then(function() {

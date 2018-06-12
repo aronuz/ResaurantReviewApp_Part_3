@@ -13,10 +13,10 @@
 <body class="inside"><!-- skip link & rearrenge nav-->
   <!-- Beginning header -->
   <header>
-    <a href="#maincontent" class="skip-to-main" tabindex="0">Proceed to main section</a>
+    <a href="#maincontent" id="skip-link" class="skip-to-main" tabindex="0">Proceed to main section</a>
     
     <div id="menu_div">
-     <a id="menu">
+     <a id="menu" aria-label="Restaurant Details" tabindex="0">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M2 6h20v3H2zm0 5h20v3H2zm0 5h20v3H2z"></path>
           </svg>
@@ -93,11 +93,26 @@
   <!-- End scripts -->
   
   <script>
+    window.onload = () => {
+      var map_frame = document.getElementsByTagName("iframe")
+      map_frame.title = "Reataurant Map";
+    };
+    
+    document.getElementById("footer").getElementsByTagName("a")[0].onblur= () => {
+      document.getElementById("skip-link").focus();
+    };
+    
+    document.getElementById("skip-link").onblur= () => {
+      document.getElementById("menu").focus();
+    };
+    
     document.addEventListener("DOMContentLoaded", function() {
       addRemoveList();
     });
     window.addEventListener('resize', addRemoveList);
   </script>
+  
+  <script src="sw_register.js"></script>
   
 </body>
 

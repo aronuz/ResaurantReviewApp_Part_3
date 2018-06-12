@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head><!-- add viewport meta -->
+<head><!--add viewport meta-->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
   <link rel="stylesheet" href="css/styles.css">
@@ -10,10 +10,10 @@
 
 <body><!-- add skip link -->
   <header>
-    <a href="#maincontent" class="skip-to-main">Proceed to main section</a>
+    <a href="#maincontent" id="skip-link" class="skip-to-main">Proceed to main section</a>
     
     <div id="menu_div">
-     <a id="menu">
+     <a id="menu" aria-label="Restaurant Listing" tabindex="0">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M2 6h20v3H2zm0 5h20v3H2zm0 5h20v3H2z"></path>
           </svg>
@@ -38,9 +38,11 @@
       <section>
           <div class="filter-options">
             <h2>Filter Results</h2><!-- add aria labels -->
+            <label for="neighborhoods-select" style="display: none;">select neighborhood</label>
             <select aria-label="select neighborhood" id="neighborhoods-select" name="neighborhoods" onchange="updateRestaurants()">
               <option aria-label="all neighborhoods" value="all">All Neighborhoods</option>
             </select>
+            <label for="select cuisine" style="display: none;">select cuisine</label>
             <select aria-label="select cuisine" id="cuisines-select" name="cuisines" onchange="updateRestaurants()">
               <option aria-label="all cuisines" value="all">All Cuisines</option>
             </select>
@@ -66,10 +68,29 @@
   </footer>
   
   <script>
+    window.onload = () => {
+      var map_frame = document.getElementsByTagName("iframe")
+      map_frame.title = "Reataurant Map";
+      console.log(map_frame);
+      
+      document.getElementsByTagName("body").onfocus = () => {
+        document.getElementById("skip-link").focus();
+      }
+    };
+    
+    document.getElementById("footer").getElementsByTagName("a")[0].onblur= () => {
+      document.getElementById("skip-link").focus();
+    };
+    
+    document.getElementById("skip-link").onblur= () => {
+      document.getElementById("menu").focus();
+    };
+    
     document.addEventListener("DOMContentLoaded", function() {
       addRemoveList();
     });
     window.addEventListener('resize', addRemoveList);
+    
   </script>
   
   <script src="sw_register.js"></script>
