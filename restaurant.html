@@ -38,32 +38,40 @@
   <!-- End header -->
 
   <!-- Beginning main -->
-  <main id="maincontent" tabindex="-1">
-     <div id="map_div">
-      <!-- Beginning map -->
-        <section id="map-container">
-          <div id="map"></div>
-        </section>
-      <!-- End map -->
-    </div>
-    <div id="main_container">
-      <!-- Beginning restaurant -->
-      <section id="restaurant-container">
-        <h1 aria-label="restaurant name" id="restaurant-name"></h1>
-        <img id="restaurant-img">
-        <p aria-label="restaurant cuisine" id="restaurant-cuisine"></p>
-        <p  aria-label="restaurant address" id="restaurant-address"></p>
-        <div aria-label="restaurant hours">
-          <table id="restaurant-hours"></table>
-        </div>
-      </section>
-      <!-- end restaurant -->
-      <!-- Beginning reviews -->
-      <section id="reviews-container">
-        <ul id="reviews-list"></ul>
-      </section>
-      <!-- End reviews -->
-    </div>
+  <main id="maincontent" tabindex="-1">   
+   <div id="container">
+      <div class="box box_resaurants" id="main_container">
+       <div class="container" style="width:100% !important;">
+         <div class="box box-about">
+            <!-- Beginning restaurant -->
+            <section id="restaurant-container">
+              <h1 aria-label="restaurant name" id="restaurant-name"></h1>
+              <img id="restaurant-img">
+              <p aria-label="restaurant cuisine" id="restaurant-cuisine"></p>
+              <p  aria-label="restaurant address" id="restaurant-address"></p>
+              <div aria-label="restaurant hours">
+                <table id="restaurant-hours"></table>
+              </div>
+            </section>
+            <!-- end restaurant -->
+         </div>          
+          <div class="box box-reviews">
+              <!-- Beginning reviews -->
+              <section id="reviews-container">
+                <ul id="reviews-list"></ul>
+              </section>
+              <!-- End reviews -->
+           </div>
+          </div>
+          </div> 
+          <div class="box box_map" id="map_div">
+            <!-- Beginning map -->
+              <section id="map-container">
+                <div id="map"></div>
+              </section>
+            <!-- End map -->
+          </div>      
+    </div> 
   </main>
   <!-- End main -->
 
@@ -74,14 +82,23 @@
   <!-- End footer -->
 
   <!-- Beginning scripts -->
+  <!-- Toggle Restaurant list and details display-->
+  <script type="application/javascript" charset="utf-8" src="js/toggleview.js"></script>
   <!-- Database helpers -->
   <script type="text/javascript" src="js/dbhelper.js"></script>
   <!-- Main javascript file -->
   <script type="text/javascript" src="js/restaurant_info.js"></script>
   <!-- Google Maps -->
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA_tKbW6A5pQ-eupxI56myUnHLqYCzOjKo&libraries=places&callback=initMap"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD9HZc5e8E5w4Qrub41cdD5C-bGPiR1MeA&libraries=places&callback=initMap"></script>
   <!-- End scripts -->
-
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      addRemoveList();
+    });
+    window.addEventListener('resize', addRemoveList);
+  </script>
+  
 </body>
 
 </html>

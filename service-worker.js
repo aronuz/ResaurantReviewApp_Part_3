@@ -104,7 +104,7 @@ self.addEventListener("activate", function(event) {
 		caches.keys().then(function (keys) {
 			return Promise.all(
 				keys.filter(function (key) {
-					return key.startsWith(reviews) && !key.endsWith(version);
+					return key.startsWith('reviews-v') && !key.endsWith(version_num);
 				}).map(function (key) {
 					return caches.delete(key);
 				})
