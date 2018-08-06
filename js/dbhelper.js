@@ -1,3 +1,4 @@
+import idb from 'idb';
 /**
  * Common database helper functions.
  */
@@ -8,27 +9,46 @@ class DBHelper {
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
-    const port = 8000 // Change this to your server port
+    const port = 1337 // Change this to your server port
     return `http://localhost:${port}/data/restaurants.json`;
   }
 
   /**
    * Fetch all restaurants.
    */
-  static fetchRestaurants(callback) {
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', DBHelper.DATABASE_URL);
-    xhr.onload = () => {
-      if (xhr.status === 200) { // Got a success response from server!
-        const json = JSON.parse(xhr.responseText);
-        const restaurants = json.restaurants;
-        callback(null, restaurants);
-      } else { // Oops!. Got an error from server.
-        const error = (`Request failed. Returned status of ${xhr.status}`);
-        callback(error, null);
+  static fetchRestaurants(callback){
+    var restaurants = [];
+    
+    var dbPromise=idb.open('restraurant_db', 1, function(upgradeDb){
+      var keyValStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
+    }).then(function(db){
+      var tx_read=db.transaction('restraurant_store');
+      var restraurantStore=tx_read.objectStore('restraurant_store');
+      return restraurantStore.getAll() || restaurants;
+    }).then(async function(restaurants, db){
+       if (!restaurants || restaurants.length === 0) {
+          var response = await fetch(DBHelper.DATABASE_URL());
+          restaurants = await response.json();
+          var db = idb.open('restraurant_db', 0, function(upgradeDb) {
+              var store = upgradeDb.createObjectStore('restraurant_store', {
+                  keyPath: 'id'});
+          }); 
+          restaurants.forEach(
+            function(restaurant){
+                var tx_write=db.transaction('restraurant_store', 'readwrite'); 
+                var restraurantStore=tx_write.objectStore('restraurant_store');
+                restraurantStore.put(restaurant)
+            }
+          );
       }
-    };
-    xhr.send();
+      return restaurants;
+    }).then(function(response){
+      return response.json();
+    }).then(restaurants => {      
+      callback(null, restaurants);
+    }).catch(e => {
+      callback(e, null);
+    })     
   }
 
   /**
@@ -150,7 +170,12 @@ class DBHelper {
    * Restaurant image URL.
    */
   static imageUrlForRestaurant(restaurant) {
-    return (`/images/${restaurant.photograph}`);
+    if (restaurant.photograph) {
+      return (`/images/${restaurant.photograph}.jpg`);
+    } else {
+      //if photograph property missing
+      return (`/Images/${restaurant.id}.jpg`);
+    }
   }
 
   /**

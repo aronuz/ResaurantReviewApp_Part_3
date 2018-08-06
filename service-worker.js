@@ -74,7 +74,11 @@ self.addEventListener("install", function(event) {
 
 self.addEventListener("fetch", function(event) {
 	console.log('Fetching');
-  
+    var fetchUrl = new URL(event.request.url);
+    if (fetchUrl.startsWith('http://localhost:1337/restaurants')) {
+        //request with idb
+        return;
+    }
     //return next to last number for activated worker
     event.waitUntil(
         caches.keys().then(function (keys) {     
