@@ -1,3 +1,6 @@
+import idb from 'idb';
+importScripts('/js/dbhelper.js');
+
 var version_num = '1';
 var old_caches = [];
 
@@ -41,6 +44,10 @@ cacheScope = [
 		'/js/restaurant_info.js'
 	]
 
+var dbPromise=idb.open('reviews_db', 1, function(upgradeDb){
+      upgradeDb.createObjectStore('reviews_store', { keyPath: 'id'});
+    })
+
 self.addEventListener("install", function(event) {     
       
     //return next to last version number for new worker
@@ -79,6 +86,14 @@ self.addEventListener("fetch", function(event) {
         //request with idb
         return;
     }
+  
+    //Saving json in indexDB      
+    dbPromise.then(function(db){
+            var tx_write=db.transaction('reviews_store', 'readwrite'); 
+            var reviewsStore=tx_write.objectStore('reviews_store');
+            reviewsStore.add(event.request.json());
+    })
+  
     //return next to last number for activated worker
     event.waitUntil(
         caches.keys().then(function (keys) {     
@@ -94,42 +109,45 @@ self.addEventListener("fetch", function(event) {
             //get latest version number
           version_num = (Math.max.apply(Math, old_caches)).toString();
         }).then(function() {
-			console.log("fetch version_num:" + version_num);
-		})
+            console.log("fetch version_num:" + version_num);
+        })
     );
-  
+
     event.respondWith(
-		caches.match(event.request).then(function(cached) {       
-			var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
-      
-			console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
-			return cached || networked;
+        caches.match(event.request).then(function(cached) {       
+            var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
 
-			function networkFetch(response) {
-				var cacheCopy = response.clone();
+            console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
+            return cached || networked;
 
-				console.log('fetched from network.', event.request.url);
+            function networkFetch(response) {
+                var cacheCopy = response.clone();
 
-				caches.open('reviews-v' + version_num).then(function add(cache) {
-					cache.put(event.request, cacheCopy);
-				}).then(function() {
-					console.log('Response cached.', event.request.url);
-				});
+                console.log('fetched from network.', event.request.url);
 
-				return response;
-			}
+                caches.open('reviews-v' + version_num).then(function add(cache) {
+                    cache.put(event.request, cacheCopy);
+                    var tx_write=db.transaction('restraurant_store', 'readwrite'); 
+                    var restraurantStore=tx_write.objectStore('restraurant_store');
+                    restraurantStore.put(restaurant)
+                }).then(function() {
+                    console.log('Response cached.', event.request.url);
+                });
 
-			function fetchFail() {
-				console.log('Fetch failed.');
+                return response;
+            }
 
-				return new Response('<h1>No Response</h1>', {
-					status: 404,
-					statusText: 'Resource Not Found',
-					headers: new Headers({'Content-Type': 'text/html'})
-				});
-			}
-		})
-	);
+            function fetchFail() {
+                console.log('Fetch failed.');
+
+                return new Response('<h1>No Response</h1>', {
+                    status: 404,
+                    statusText: 'Resource Not Found',
+                    headers: new Headers({'Content-Type': 'text/html'})
+                });
+            }
+        })
+    );
 });
 
 self.addEventListener("activate", function(event) {

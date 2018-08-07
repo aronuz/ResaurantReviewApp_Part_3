@@ -27,7 +27,7 @@ class DBHelper {
       return restraurantStore.getAll() || restaurants;
     }).then(async function(restaurants, db){
        if (!restaurants || restaurants.length === 0) {
-          var response = await fetch(DBHelper.DATABASE_URL());
+          var response = await fetch(DBHelper.DATABASE_URL);
           restaurants = await response.json();
           var db = idb.open('restraurant_db', 0, function(upgradeDb) {
               var store = upgradeDb.createObjectStore('restraurant_store', {
