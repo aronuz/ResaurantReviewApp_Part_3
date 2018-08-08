@@ -1,4 +1,4 @@
-//import idb from 'idb';
+import idb from 'idb';
 //importScripts('/js/dbhelper.js');
 
 var version_num = '1';
