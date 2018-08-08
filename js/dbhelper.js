@@ -1,4 +1,3 @@
-import idb from 'idb';
 /**
  * Common database helper functions.
  */
@@ -10,7 +9,7 @@ class DBHelper {
    */
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/data/restaurants.json`;
+    return `http://localhost:${port}/restaurants`;
   }
 
   /**
@@ -19,31 +18,31 @@ class DBHelper {
   static fetchRestaurants(callback){
     var restaurants = [];
     
-    var dbPromise=idb.open('restraurant_db', 1, function(upgradeDb){
+    var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
       var keyValStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
-    }).then(function(db){
+    });
+    
+    dbPromise.then(db => {console.log(db);
       var tx_read=db.transaction('restraurant_store');
       var restraurantStore=tx_read.objectStore('restraurant_store');
       return restraurantStore.getAll() || restaurants;
-    }).then(async function(restaurants, db){
+    }).then(async function(restaurants){
        if (!restaurants || restaurants.length === 0) {
           var response = await fetch(DBHelper.DATABASE_URL);
-          restaurants = await response.json();
-          var db = idb.open('restraurant_db', 0, function(upgradeDb) {
-              var store = upgradeDb.createObjectStore('restraurant_store', {
-                  keyPath: 'id'});
-          }); 
-          restaurants.forEach(
-            function(restaurant){
-                var tx_write=db.transaction('restraurant_store', 'readwrite'); 
-                var restraurantStore=tx_write.objectStore('restraurant_store');
-                restraurantStore.put(restaurant)
-            }
-          );
+          var restaurants = await response.json();
+         
+          dbPromise.then(db => {
+              console.log(db);
+              var tx_write=db.transaction('restraurant_store', 'readwrite');
+              var restraurantStore=tx_write.objectStore('restraurant_store');
+              restaurants.forEach(restaurant => restraurantStore.put(restaurant));
+         });
       }
+      console.log(restaurants);                                      
       return restaurants;
     }).then(function(response){
-      return response.json();
+      console.log(response);
+      return response; //.json();
     }).then(restaurants => {      
       callback(null, restaurants);
     }).catch(e => {
@@ -170,11 +169,11 @@ class DBHelper {
    * Restaurant image URL.
    */
   static imageUrlForRestaurant(restaurant) {
-    if (restaurant.photograph) {
-      return (`/images/${restaurant.photograph}.jpg`);
-    } else {
+    if (restaurant.photograph) {console.log(restaurant.photograph);
+      return (`/images/${restaurant.photograph}`);//.jpg
+    } else {console.log(restaurant.id);
       //if photograph property missing
-      return (`/Images/${restaurant.id}.jpg`);
+      return (`/Images/${restaurant.id}`);//.jpg
     }
   }
 

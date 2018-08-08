@@ -1,5 +1,5 @@
-import idb from 'idb';
-importScripts('/js/dbhelper.js');
+//import idb from 'idb';
+//importScripts('/js/dbhelper.js');
 
 var version_num = '1';
 var old_caches = [];
@@ -44,7 +44,7 @@ cacheScope = [
 		'/js/restaurant_info.js'
 	]
 
-var dbPromise=idb.open('reviews_db', 1, function(upgradeDb){
+var dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
       upgradeDb.createObjectStore('reviews_store', { keyPath: 'id'});
     })
 
