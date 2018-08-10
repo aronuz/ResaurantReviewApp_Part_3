@@ -126,6 +126,7 @@ self.addEventListener("fetch", function(event) {
 					
                     //Saving json in indexDB  
 					event.request.json().then( response_json => {
+						console.log(response_json);//
 						dbPromise.then(function(db){
 							var tx_write=db.transaction('reviews_store', 'readwrite'); 
 							var reviewsStore=tx_write.objectStore('reviews_store');
