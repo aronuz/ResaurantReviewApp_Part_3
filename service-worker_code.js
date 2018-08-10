@@ -131,7 +131,7 @@ self.addEventListener("fetch", function(event) {
 							var tx_write=db.transaction('reviews_store', 'readwrite'); 
 							var reviewsStore=tx_write.objectStore('reviews_store');
 							
-							for  (i = 0; i < response_json; i++) { 
+							for  (i = 0; i < response_json.length; i++) { 
 								reviewsStore.add(response_json[i]);
 							} 
 						})
