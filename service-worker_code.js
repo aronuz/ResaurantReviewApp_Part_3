@@ -1,4 +1,6 @@
-import idb from './idb';
+//import idb from './idb';
+importScripts( '/js/idb.js' );
+
 
 var version_num = '1';
 var old_caches = [];
