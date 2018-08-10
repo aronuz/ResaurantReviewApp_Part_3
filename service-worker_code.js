@@ -118,7 +118,7 @@ self.addEventListener("fetch", function(event) {
                 var cacheCopy = response.clone();
 
                 console.log('fetched from network.', event.request.url);
-				if (!event.request.url.startsWith('https://maps.gstatic.com')){
+				if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
 					caches.open('reviews-v' + version_num).then(function add(cache) {
 						
 						cache.put(event.request, cacheCopy);
