@@ -130,7 +130,10 @@ self.addEventListener("fetch", function(event) {
 						dbPromise.then(function(db){
 							var tx_write=db.transaction('reviews_store', 'readwrite'); 
 							var reviewsStore=tx_write.objectStore('reviews_store');
-							reviewsStore.add(response_json);
+							
+							for  (i = 0; i < response_json; i++) { 
+								reviewsStore.add(response_json[i]);
+							} 
 						})
 					}).then(response_json => {      
 					  console.log("db success for: " + response_json);
