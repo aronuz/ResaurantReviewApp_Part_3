@@ -132,7 +132,7 @@ self.addEventListener("fetch", function(event) {
 							var reviewsStore=tx_write.objectStore('reviews_store');
 							
 							for  (i = 0; i < response_json.length; i++) { 
-								reviewsStore.add(response_json[i]);
+								reviewsStore.put(response_json[i]);
 							} 
 						})
 					}).then(response_json => {      
