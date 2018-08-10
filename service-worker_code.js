@@ -1,6 +1,4 @@
-//import idb from './idb';
 importScripts( '/js/idb.js' );
-
 
 var version_num = '1';
 var old_caches = [];
@@ -120,29 +118,31 @@ self.addEventListener("fetch", function(event) {
                 var cacheCopy = response.clone();
 
                 console.log('fetched from network.', event.request.url);
-
-                caches.open('reviews-v' + version_num).then(function add(cache) {
-                    cache.put(event.request, cacheCopy);
-					
-                    //Saving json in indexDB  
-					event.request.json().then( response_json => {
-						console.log(response_json);//
-						dbPromise.then(function(db){
-							var tx_write=db.transaction('reviews_store', 'readwrite'); 
-							var reviewsStore=tx_write.objectStore('reviews_store');
+				if (!event.request.url.startsWith('https://maps.gstatic.com')){
+					caches.open('reviews-v' + version_num).then(function add(cache) {
+						
+						cache.put(event.request, cacheCopy);
+						
+						//Saving json in indexDB  
+						event.request.json().then( response_json => {
 							
-							for  (i = 0; i < response_json.length; i++) { 
-								reviewsStore.put(response_json[i]);
-							} 
-						})
-					}).then(response_json => {      
-					  console.log("db success for: " + response_json);
-					}).catch(response_json => {
-					  console.log("db fail for: " + response_json);
-					})     
-                }).then(function() {
-                    console.log('Response cached.', event.request.url);
-                });
+							dbPromise.then(function(db){
+								var tx_write=db.transaction('reviews_store', 'readwrite'); 
+								var reviewsStore=tx_write.objectStore('reviews_store');
+								
+								for  (i = 0; i < response_json.length; i++) { 
+									reviewsStore.put(response_json[i]);
+								} 
+							})
+						}).then(response_json => {      
+						  console.log("db success for: " + response_json);
+						}).catch(response_json => {
+						  console.log("db fail for: " + response_json);
+						}) 
+					}).then(function() {
+						console.log('Response cached.', event.request.url);
+					});
+				}
 
                 return response;
             }
