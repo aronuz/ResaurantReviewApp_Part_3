@@ -1,9 +1,9 @@
 importScripts( '/js/idb.js' );
 
-var version_num = '1';
-var old_caches = [];
+let version_num = '1';
+let old_caches = [];
 
-var cacheScope = [
+const cacheScope = [
 		'/',
         '/index.html',
         '/restaurant.html',
@@ -41,7 +41,7 @@ var cacheScope = [
 		'/js/dbhelper.js',
 		'/js/main.js',
 		'/js/restaurant_info.js'
-	]
+	];
 	
 if (!String.prototype.startsWith) {
     String.prototype.startsWith = function(searchString, position){
@@ -50,9 +50,9 @@ if (!String.prototype.startsWith) {
   };
 }
 
-var dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
+let dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
       upgradeDb.createObjectStore('reviews_store', { keyPath: 'id'});
-    })
+    });
 
 self.addEventListener("install", function(event) {     
       
@@ -67,7 +67,7 @@ self.addEventListener("install", function(event) {
           old_caches.forEach(function (key, index) {
             version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
             old_caches[index] = version_num;   
-          })
+          });
           //get latest version number and add next one
           version_num = (Math.max.apply(Math, old_caches)+ 1).toString();
         }).then(function() {
@@ -99,7 +99,7 @@ self.addEventListener("fetch", function(event) {
           old_caches.forEach(function (key, index) {
             version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
             old_caches[index] = version_num;   
-          })
+          });
             //get latest version number
           version_num = (Math.max.apply(Math, old_caches)).toString();
         }).then(function() {
@@ -124,8 +124,7 @@ self.addEventListener("fetch", function(event) {
 						cache.put(event.request, cacheCopy);
 						
 						//Saving json in indexDB  
-						event.request.json().then( response_json => {
-							
+						cacheCopy.json().then( response_json => {
 							dbPromise.then(function(db){
 								var tx_write=db.transaction('reviews_store', 'readwrite'); 
 								var reviewsStore=tx_write.objectStore('reviews_store');
@@ -133,12 +132,13 @@ self.addEventListener("fetch", function(event) {
 								for  (i = 0; i < response_json.length; i++) { 
 									reviewsStore.put(response_json[i]);
 								} 
-							})
+							});
+							return response_json;
 						}).then(response_json => {      
 						  console.log("db success for: " + response_json);
 						}).catch(response_json => {
 						  console.log("db fail for: " + response_json);
-						}) 
+						});
 					}).then(function() {
 						console.log('Response cached.', event.request.url);
 					});
@@ -174,7 +174,7 @@ self.addEventListener("activate", function(event) {
           old_caches.forEach(function (key, index) {
             version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
             old_caches[index] = version_num;   
-          })
+          });
           //get latest version number
           version_num = (Math.max.apply(Math, old_caches)).toString();
         }).then(function() {
