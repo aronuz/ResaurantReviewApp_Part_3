@@ -36,7 +36,7 @@
               console.log(db);
               var tx_write=db.transaction('restraurant_store', 'readwrite');
               var restraurantStore=tx_write.objectStore('restraurant_store');
-              restaurants.forEach(restaurant => restraurantStore.put(restaurant));
+              restaurants.forEach(restaurant => {restraurantStore.put(restaurant)});
          });
       }
       console.log(restaurants);                                      
