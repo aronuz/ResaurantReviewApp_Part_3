@@ -38,6 +38,21 @@ const cacheScope = [
 		'/images/8-100pc_big.jpg',
 		'/images/9-100pc_big.jpg',
 		'/images/10-100pc_big.jpg',
+		'/images/1-100pc_big.webp',
+		'/images/2-100pc_big.webp',
+		'/images/3-100pc_big.webp',
+		'/images/4-100pc_big.webp',
+		'/images/5-100pc_big.webp',
+		'/images/7-100pc_big.webp',
+		'/images/8-100pc_big.webp',
+		'/images/9-100pc_big.webp',
+		'/images/10-100pc_big.webp',
+		'/images/1-400_mid.webp',
+		'/images/3-400_mid.webp',
+		'/images/5-400_mid.webp',
+		'/images/7-400_mid.webp',
+		'/images/9-400_mid.webp',
+		'/images/10-400_mid.webp',
 		'/js/dbhelper.js',
 		'/js/main.js',
 		'/js/restaurant_info.js'
@@ -51,7 +66,7 @@ if (!String.prototype.startsWith) {
 }
 
 let dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
-      upgradeDb.createObjectStore('reviews_store', { keyPath: 'id'});
+      upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
     });
 
 self.addEventListener("install", function(event) {     
@@ -107,6 +122,22 @@ self.addEventListener("fetch", function(event) {
         })
     );
 
+	event.request.json().then( response_json => {
+		dbPromise.then(function(db){
+			var tx_write=db.transaction('reviews_store', 'readwrite'); 
+			var reviewsStore=tx_write.objectStore('reviews_store');
+			reviewsStore.put({
+				store_request: event.request,
+				store_response: response_json
+			});
+			return tx_write.complete;
+		}).then(complete => {      
+			console.log("db success:", complete);
+		}).catch(complete => {
+			console.log("db fail:", complete);
+		});
+	})
+		
     event.respondWith(
         caches.match(event.request).then(function(cached) {       
             var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
@@ -115,35 +146,20 @@ self.addEventListener("fetch", function(event) {
             return cached || networked;
 
             function networkFetch(response) {
-                var cacheCopy = response.clone();
-
-                console.log('fetched from network.', event.request.url);
+				
 				if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
+					var cacheCopy = response.clone();
+
+					console.log('fetched from network.', event.request.url);
+
 					caches.open('reviews-v' + version_num).then(function add(cache) {
-						
 						cache.put(event.request, cacheCopy);
-						
-						//Saving json in indexDB  
-						cacheCopy.json().then( response_json => {
-							dbPromise.then(function(db){
-								var tx_write=db.transaction('reviews_store', 'readwrite'); 
-								var reviewsStore=tx_write.objectStore('reviews_store');
-								
-								for  (i = 0; i < response_json.length; i++) { 
-									reviewsStore.put(response_json[i]);
-								} 
-							});
-							return response_json;
-						}).then(response_json => {      
-						  console.log("db success for: " + response_json);
-						}).catch(response_json => {
-						  console.log("db fail for: " + response_json);
-						});
 					}).then(function() {
 						console.log('Response cached.', event.request.url);
 					});
-				}
 
+				}
+                
                 return response;
             }
 
