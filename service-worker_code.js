@@ -66,7 +66,8 @@ if (!String.prototype.startsWith) {
 }
 
 let dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
-      upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+      var reviews_store = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+	  reviewsStore.createIndex('store_request', 'store_request');
     });
 
 self.addEventListener("install", function(event) {     
@@ -139,41 +140,54 @@ self.addEventListener("fetch", function(event) {
 	})
 		
     event.respondWith(
-        caches.match(event.request).then(function(cached) {       
-            var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
+		dbPromise.then(function(db){
+			var tx_read=db.transaction('reviews_get'); 
+			var reviewsStore=tx_read.objectStore('reviews_store');
+			var storeIndex = reviewsStore.index('store_request');
+			
+			return storeIndex.get(event.request);
+		}).then(idbResponse => {      
+			if(idbResponse){
+				return idbResponse;
+			}else{
+				caches.match(event.request).then(function(cached) {       
+					var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
 
-            console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
-            return cached || networked;
+					console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
+					return cached || networked;
 
-            function networkFetch(response) {
-				
-				if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
-					var cacheCopy = response.clone();
+					function networkFetch(response) {
+						
+						if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
+							var cacheCopy = response.clone();
 
-					console.log('fetched from network.', event.request.url);
+							console.log('fetched from network.', event.request.url);
 
-					caches.open('reviews-v' + version_num).then(function add(cache) {
-						cache.put(event.request, cacheCopy);
-					}).then(function() {
-						console.log('Response cached.', event.request.url);
-					});
+							caches.open('reviews-v' + version_num).then(function add(cache) {
+								cache.put(event.request, cacheCopy);
+							}).then(function() {
+								console.log('Response cached.', event.request.url);
+							});
 
-				}
-                
-                return response;
-            }
+						}
+						
+						return response;
+					}
 
-            function fetchFail() {
-                console.log('Fetch failed.');
+					function fetchFail() {
+						console.log('Fetch failed.');
 
-                return new Response('<h1>No Response</h1>', {
-                    status: 404,
-                    statusText: 'Resource Not Found',
-                    headers: new Headers({'Content-Type': 'text/html'})
-                });
-            }
-        })
-    );
+						return new Response('<h1>No Response</h1>', {
+							status: 404,
+							statusText: 'Resource Not Found',
+							headers: new Headers({'Content-Type': 'text/html'})
+						});
+					}
+				})
+			}
+		})
+		//.catch(error => console.log("db fail"+error))
+	);
 });
 
 self.addEventListener("activate", function(event) {
