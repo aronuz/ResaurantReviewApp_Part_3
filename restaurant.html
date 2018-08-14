@@ -111,28 +111,19 @@
     });
     window.addEventListener('resize', addRemoveList);
 	
-	function isOffScreen() {
-		//viewport boundries
-		var viewTop = $(window).scrollTop();
-		var viewBottom = viewTop + $(window).height();
-		//list boundries
-		var thisTop = $(this).offset().top;
-		var thisBottom = thisTop + $(this).outerHeight();
-
-		return (viewTop > thisBottom || viewBottom < thisTop);
-	};
-
-	$(document).ready(function(){
-		$(window).on('resize scroll', function() {
-			$('#reviews-list li').each(function() {
-				if ($(this).isOffScreen()) {
-				  $(this).css("display", "none");
-				} else {
-				  $(this).css("display", "display");
-				}
-			});
+	window.addEventListener('scroll', hideShowList);
+	
+	function hideShowList() {
+		
+		document.getElementById('reviews-list').getElementsByTagName('li').forEach(function(el) {
+			if(el.offset.top > window.innerHeigth || el.offset.top + el.height < 0){
+			  el.style.display = "none";
+			} else {
+			  el.style.display="display";
+			}
 		});
-	})
+		
+	};
   </script>
   
   <script src="js/idb.js" defer></script>
