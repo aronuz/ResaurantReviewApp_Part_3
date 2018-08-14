@@ -66,110 +66,106 @@ if (!String.prototype.startsWith) {
 }
 
 let dbPromise=idb.open('restraurant_db', 2, function(upgradeDb){
-      var reviews_store = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+      var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
 	  reviewsStore.createIndex('store_request', 'store_request');
-    });
+    }); 
 
 self.addEventListener("install", function(event) {     
       
     //return next to last version number for new worker
     event.waitUntil(
-        caches.keys().then(function (keys) {     
-          return Promise.all(
-            old_caches = keys.filter(function (key) {
-                return key.startsWith("reviews-v");
-            })
-          );
-          old_caches.forEach(function (key, index) {
-            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-            old_caches[index] = version_num;   
-          });
-          //get latest version number and add next one
-          version_num = (Math.max.apply(Math, old_caches)+ 1).toString();
-        }).then(function() {
-			console.log("install version_num:" + version_num);
-		})
-    );
-  
-	console.log('SW installing');
-	event.waitUntil(
-		caches.open('reviews-v' + version_num).then(function(cache) {
-			return cache.addAll(cacheScope);
-		}).then(function() {
-			console.log('SW installed');
+		caches.keys().then(keys => {     
+			Promise.all(
+				old_caches = keys.filter(key => key.startsWith("reviews-v"))
+			).then(old_caches => {
+				old_caches.forEach((key, index) => {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number and add next one
+				version_num = (Math.max.apply(Math, old_caches) + 1).toString();
+				return version_num;
+			}).then(version_num => {
+				console.log("installing version_num:" + version_num);
+				caches.open('reviews-v' + version_num)
+				.then(cache => {
+					cache.addAll(cacheScope);
+				})
+			}).then(() => {
+				console.log('SW installed');
+			})
 		})
     );
 });
 
-self.addEventListener("fetch", function(event) {
+self.addEventListener("fetch", event => {
 	console.log('Fetching');
   
     //return next to last number for activated worker
     event.waitUntil(
-        caches.keys().then(function (keys) {     
-          return Promise.all(
-            old_caches = keys.filter(function (key) {
-                return key.startsWith("reviews-v");
-            })
-          );
-          old_caches.forEach(function (key, index) {
-            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-            old_caches[index] = version_num;   
-          });
-            //get latest version number
-          version_num = (Math.max.apply(Math, old_caches)).toString();
-        }).then(function() {
-            console.log("fetch version_num:" + version_num);
-        })
+        caches.keys().then(keys => {     
+			Promise.all(
+				old_caches = keys.filter(key => key.startsWith("reviews-v"))
+			).then(old_caches => {
+				old_caches.forEach((key, index) => {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number
+				version_num = (Math.max.apply(Math, old_caches)).toString();
+				return version_num;
+			}).then(version_num => {
+				console.log("fetching version_num:" + version_num);
+			})
+		})
     );
+	if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
+		console.log("respondWith version_num:" + version_num);
+		event.respondWith(
+					
+			dbPromise.then(db => {
+				var tx_read=db.transaction('reviews_get'); 
+				var reviewsStore=tx_read.objectStore('reviews_store');
+				var storeIndex = reviewsStore.index('store_request');
+				
+				return storeIndex.get(event.request);
+			}).then(idbResponse => {      
+				if(idbResponse) return idbResponse;
+				
+				caches.match(event.request).then(cached => {       
+				
+					//console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
+					if(cached) return cached;
+					
+					var networked = fetch(event.request).then(networkFetch, fetchFail);
+					
+					return networked;
 
-	event.request.json().then( response_json => {
-		dbPromise.then(function(db){
-			var tx_write=db.transaction('reviews_store', 'readwrite'); 
-			var reviewsStore=tx_write.objectStore('reviews_store');
-			reviewsStore.put({
-				store_request: event.request,
-				store_response: response_json
-			});
-			return tx_write.complete;
-		}).then(complete => {      
-			console.log("db success:", complete);
-		}).catch(complete => {
-			console.log("db fail:", complete);
-		});
-	})
-		
-    event.respondWith(
-		dbPromise.then(function(db){
-			var tx_read=db.transaction('reviews_get'); 
-			var reviewsStore=tx_read.objectStore('reviews_store');
-			var storeIndex = reviewsStore.index('store_request');
-			
-			return storeIndex.get(event.request);
-		}).then(idbResponse => {      
-			if(idbResponse){
-				return idbResponse;
-			}else{
-				caches.match(event.request).then(function(cached) {       
-					var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
-
-					console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
-					return cached || networked;
-
-					function networkFetch(response) {
+					function networkFetch(response) {					
+						var dbCopy = response.clone();
+						var cacheCopy = response.clone();
 						
-						if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
-							var cacheCopy = response.clone();
-
-							console.log('fetched from network.', event.request.url);
-
-							caches.open('reviews-v' + version_num).then(function add(cache) {
-								cache.put(event.request, cacheCopy);
-							}).then(function() {
-								console.log('Response cached.', event.request.url);
+						dbPromise.then(db => {
+							var tx_write=db.transaction('reviews_store', 'readwrite'); 
+							var reviewsStore=tx_write.objectStore('reviews_store');
+							reviewsStore.put({
+								store_request: event.request,
+								store_response: dbCopy
 							});
+							return tx_write.complete;
+						}).then(complete => {      
+							console.log("db success:", complete);
+						}).catch(complete => {
+							console.log("db fail:", complete);
+						});
 
-						}
+						console.log('fetched from network.', event.request.url);
+
+						caches.open('reviews-v' + version_num).then(function add(cache) {
+							cache.put(event.request, cacheCopy);
+						}).then(function() {
+							console.log('Response cached.', event.request.url);
+						});					
 						
 						return response;
 					}
@@ -184,10 +180,9 @@ self.addEventListener("fetch", function(event) {
 						});
 					}
 				})
-			}
-		})
-		//.catch(error => console.log("db fail"+error))
-	);
+			})
+		);
+	}
 });
 
 self.addEventListener("activate", function(event) {
@@ -195,34 +190,32 @@ self.addEventListener("activate", function(event) {
   
     //return next to last number for installed worker
     event.waitUntil(
-        caches.keys().then(function (keys) {     
-          return Promise.all(
-            old_caches = keys.filter(function (key) {
-                return key.startsWith("reviews-v");
-            })
-          );
-          old_caches.forEach(function (key, index) {
-            version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-            old_caches[index] = version_num;   
-          });
-          //get latest version number
-          version_num = (Math.max.apply(Math, old_caches)).toString();
-        }).then(function() {
-			console.log("activate version_num:" + version_num);
+        caches.keys().then(keys => {     
+			Promise.all(
+				old_caches = keys.filter(key => key.startsWith("reviews-v"))
+			).then(old_caches => {
+				old_caches.forEach((key, index) => {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number and add next one
+				version_num = Math.max.apply(Math, old_caches).toString();
+				return version_num;
+			}).then(version_num => {
+				console.log("activating version_num:" + version_num);
+				caches.keys().then(keys => {
+					return keys.filter(key => {key.startsWith("reviews-v") && !key.endsWith(version_num)});
+				}).then(keys => {
+					return Promise.all(
+						keys.map(key => {
+							return key.delete(key);
+						})
+					);
+				}).then(() => {
+					console.log('SW activated.');
+				})
+			})
 		})
     );
-
-	event.waitUntil(
-		caches.keys().then(function (keys) {
-			return Promise.all(
-				keys.filter(function (key) {
-					return key.startsWith("reviews-v") && !key.endsWith(version_num);
-				}).map(function (key) {
-					return key.delete(key);
-				})
-			);
-		}).then(function() {
-			console.log('SW activated.');
-		})
-	);
+	
 });

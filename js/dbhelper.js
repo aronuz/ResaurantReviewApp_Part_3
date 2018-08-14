@@ -20,7 +20,7 @@
     var restaurants = [];
     
     var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
-      var keyValStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
+      var restaurantStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
     });
     
     dbPromise.then(db => {console.log(db);
@@ -174,7 +174,7 @@
       return (`/images/${restaurant.photograph}`);//.jpg
     } else {console.log(restaurant.id);
       //if photograph property missing
-      return (`/Images/${restaurant.id}`);//.jpg
+      return (`/images/${restaurant.id}`);//.jpg
     }
   }
 
