@@ -99,8 +99,8 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("fetch", event => {
-	console.log('Fetching');
-			
+	console.log('Fetching');	
+		
 	if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
 		
 		event.request.json().then( resp => {
@@ -120,21 +120,26 @@ self.addEventListener("fetch", event => {
 		})
 		
 		event.respondWith(
-								
-			dbPromise.then(db => {
-				var tx_read=db.transaction('reviews_get'); 
-				var reviewsStore=tx_read.objectStore('reviews_store');
-				var storeIndex = reviewsStore.index('store_request');
+		
+			caches.match(event.request).then(cached => {
 				
-				return storeIndex.get(event.request);
-			}).then(idbResponse => {      
-				return new Response(idbResponse);
-			}).catch(e => {
-				return new Response('<h1>No Response</h1>', {
-					status: 404,
-					statusText: 'Resource Not Found',
-					headers: new Headers({'Content-Type': 'text/html'})
-				});
+				if(cached) return cached;
+								
+				dbPromise.then(db => {
+					var tx_read=db.transaction('reviews_get'); 
+					var reviewsStore=tx_read.objectStore('reviews_store');
+					var storeIndex = reviewsStore.index('store_request');
+					
+					return storeIndex.get(event.request);
+				}).then(idbResponse => {      
+					return new Response(idbResponse);
+				}).catch(e => {
+					return new Response('<h1>No Response</h1>', {
+						status: 404,
+						statusText: 'Resource Not Found',
+						headers: new Headers({'Content-Type': 'text/html'})
+					});
+				})
 			})
 		);
 	}
