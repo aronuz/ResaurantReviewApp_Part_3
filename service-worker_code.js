@@ -65,14 +65,37 @@ if (!String.prototype.startsWith) {
   };
 }
 
-self.addEventListener("install", event => { 
-
-	let dbPromise=idb.open('restraurant_db', 2, upgradeDb => {
-      var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-	  reviewsStore.createIndex('store_request', 'store_request');
-    }); 
+let dbPromise=idb.open('restraurant_db', 2, upgradeDb => {
+  var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+  reviewsStore.createIndex('store_request', 'store_request');
+}); 
 	
-	console.log('SW installed');
+self.addEventListener("install", event => { 
+	
+	//return next to last version number for new worker
+    event.waitUntil(
+		caches.keys().then(keys => {     
+			Promise.all(
+				old_caches = keys.filter(key => key.startsWith("reviews-v"))
+			).then(old_caches => {
+				old_caches.forEach((key, index) => {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number and add next one
+				version_num = (Math.max.apply(Math, old_caches) + 1).toString();
+				return version_num;
+			}).then(version_num => {
+				console.log("installing version_num:" + version_num);
+				caches.open('reviews-v' + version_num)
+				.then(cache => {
+					cache.addAll(cacheScope);
+				})
+			}).then(() => {
+				console.log('SW installed');
+			})
+		})
+    );
 });
 
 self.addEventListener("fetch", event => {
@@ -118,5 +141,33 @@ self.addEventListener("fetch", event => {
 });
 
 self.addEventListener("activate", event => {
-	console.log('Activating SW');	
+	//return next to last number for installed worker
+    event.waitUntil(
+        caches.keys().then(keys => {     
+			Promise.all(
+				old_caches = keys.filter(key => key.startsWith("reviews-v"))
+			).then(old_caches => {
+				old_caches.forEach((key, index) => {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number and add next one
+				version_num = Math.max.apply(Math, old_caches).toString();
+				return version_num;
+			}).then(version_num => {
+				console.log("activating version_num:" + version_num);
+				caches.keys().then(keys => {
+					return keys.filter(key => {key.startsWith("reviews-v") && !key.endsWith(version_num)});
+				}).then(keys => {
+					return Promise.all(
+						keys.map(key => {
+							return key.delete(key);
+						})
+					);
+				}).then(() => {
+					console.log('SW activated.');
+				})
+			})
+		})
+    );	
 });
