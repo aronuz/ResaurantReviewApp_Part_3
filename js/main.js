@@ -4,7 +4,13 @@ let restaurants,
 var map
 var markers = []
 
-
+/**
+ * Fetch neighborhoods and cuisines as soon as the page is loaded.
+ */
+document.addEventListener('DOMContentLoaded', (event) => {
+  fetchNeighborhoods();
+  fetchCuisines();
+});
 
 /**
  * Fetch all neighborhoods and set their HTML.
@@ -19,6 +25,7 @@ fetchNeighborhoods = () => {
     }
   });
 }
+
 /**
  * Set neighborhoods HTML.
  */
@@ -122,6 +129,10 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
   restaurants.forEach(restaurant => {
     ul.append(createRestaurantHTML(restaurant));
   });
+    const el = document.querySelectorAll('#restaurants-list picture');
+	for (var i=0;i<el.length;i+=1){
+		el[i].style.display = 'none';
+	}
   addMarkersToMap();
 }
 
@@ -130,29 +141,6 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
  */
 createRestaurantHTML = (restaurant) => {
   const li = document.createElement('li');
-
-  const picture = document.createElement('picture');  
-  const source_webp = document.createElement('source');
-  const source_jpeg = document.createElement('source');
-  const image = document.createElement('img');
-  
-  const img_name = DBHelper.imageUrlForRestaurant(restaurant)
-  
-  source_webp.srcset = img_name + "-200_small.webp 200w, " + img_name + "-400_mid.webp 400w, " + img_name + "-100pc_big.webp 800w";
-  source_webp.type = "image/webp";
-  
-  source_jpeg.srcset = img_name + "-200_small.jpg 200w, " + img_name + "-400_mid.jpg 400w, " + img_name + "-100pc_big.jpg 800w";
-  source_jpeg.type = "image/jpeg";
-  
-  image.src = img_name + "-200_small.jpg";
-  image.alt = restaurant.name + " image";
-  
-  picture.className = 'restaurant-img';
-
-  picture.append(source_webp);
-  picture.append(source_jpeg);
-  picture.append(image);
-  li.append(picture);
 
   const name = document.createElement('h1');
   name.innerHTML = restaurant.name;
@@ -175,6 +163,44 @@ createRestaurantHTML = (restaurant) => {
 }
 
 /**
+ * Load images 
+ */
+loadRestaurantImages = (restaurants = self.restaurants) => {
+	const el = document.querySelectorAll('#restaurants-list li');
+  
+	for (i = 0; i < el.length; ++i) {
+		var elBox = el[i].getBoundingClientRect();
+		
+		if(elBox.top > window.innerHeight || elBox.top + elBox.height < 0){
+			console.log(i, "item is off screen");
+		} else if(document.querySelectorAll("#restaurants-list picture")[i] === undefined){
+			const picture = document.createElement('picture');  
+			const source_webp = document.createElement('source');
+			const source_jpeg = document.createElement('source');
+			const image = document.createElement('img');
+			  
+			const img_name = DBHelper.imageUrlForRestaurant(restaurants[i])
+			  
+			source_webp.srcset = img_name + "-100pc_big.webp";
+			source_webp.type = "image/webp";
+			  
+			source_jpeg.srcset = img_name + "-200_small.jpg 200w, " + img_name + "-400_mid.jpg 400w, " + img_name + "-100pc_big.jpg 800w";
+			source_jpeg.type = "image/jpeg";
+			  
+			image.src = img_name + "-200_small.jpg";
+			image.alt = restaurants[i].name + " image";
+			  
+			picture.className = 'restaurant-img';
+
+			picture.append(source_webp);
+			picture.append(source_jpeg);
+			picture.append(image);
+			el[i].prepend(picture);
+		}
+	}	
+}
+
+/**
  * Add markers for current restaurants to the map.
  */
 addMarkersToMap = (restaurants = self.restaurants) => {
@@ -188,10 +214,3 @@ addMarkersToMap = (restaurants = self.restaurants) => {
   });
 }
 
-/**
- * Fetch neighborhoods and cuisines as soon as the page is loaded.
- */
-document.addEventListener('DOMContentLoaded', (event) => {
-  fetchNeighborhoods();
-  fetchCuisines();
-});

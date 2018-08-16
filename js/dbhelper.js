@@ -18,11 +18,13 @@
    */
   static fetchRestaurants(callback){
     var restaurants = [];
-    
-    var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
-      var restaurantStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
-    });
-    
+	
+	var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
+		var restaurantStore=upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
+		var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+		reviewsStore.createIndex('store_request', 'store_request');
+	})
+        
     dbPromise.then(db => {console.log(db);
       var tx_read=db.transaction('restraurant_store');
       var restraurantStore=tx_read.objectStore('restraurant_store');
@@ -171,10 +173,10 @@
    */
   static imageUrlForRestaurant(restaurant) {
     if (restaurant.photograph) {console.log(restaurant.photograph);
-      return (`/images/${restaurant.photograph}`);//.jpg
+      return (`images/${restaurant.photograph}`);//.jpg
     } else {console.log(restaurant.id);
       //if photograph property missing
-      return (`/images/${restaurant.id}`);//.jpg
+      return (`images/${restaurant.id}`);//.jpg
     }
   }
 

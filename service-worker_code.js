@@ -1,9 +1,9 @@
 importScripts( '/js/idb.js' );
 
-let version_num = '1';
-let old_caches = [];
+var version_num = '1';
+var old_caches = [];
 
-const cacheScope = [
+var cacheScope = [
 		'/',
         '/index.html',
         '/restaurant.html',
@@ -65,10 +65,19 @@ if (!String.prototype.startsWith) {
   };
 }
 
-let dbPromise=idb.open('restraurant_db', 2, upgradeDb => {
-  var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-  reviewsStore.createIndex('store_request', 'store_request');
-}); 
+/*let dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
+	switch(upgradeDb.oldVersion){
+		case 1:
+			var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
+			reviewsStore.createIndex('store_request', 'store_request');
+		case 2:
+		default:
+			var reviewsStore = upgradeDb.transaction.objectStore('reviews_store');
+
+	}
+}); */
+
+let dbPromise=idb.open('restraurant_db', 1);
 	
 self.addEventListener("install", event => { 
 	
@@ -96,12 +105,13 @@ self.addEventListener("install", event => {
 			})
 		})
     );
+
 });
 
 self.addEventListener("fetch", event => {
-	console.log('Fetching');	
+	console.log('Fetching');			
 		
-	if (!(event.request.url.startsWith('https://maps.googleapis.com') || event.request.url.startsWith('https://maps.gstatic.com'))){
+	if ( event.request.method == 'POST' ) {
 		
 		event.request.json().then( resp => {
 			dbPromise.then(db => {
@@ -119,31 +129,61 @@ self.addEventListener("fetch", event => {
 			})
 		})
 		
-	}
-		
-	event.respondWith(
-	
-		caches.match(event.request).then(cached => {
-			
-			if(cached) return cached;
-							
-			dbPromise.then(db => {
-				var tx_read=db.transaction('reviews_get'); 
-				var reviewsStore=tx_read.objectStore('reviews_store');
-				var storeIndex = reviewsStore.index('store_request');
-				
-				return storeIndex.get(event.request);
-			}).then(idbResponse => {      
-				return new Response(idbResponse);
-			}).catch(e => {
-				return new Response('<h1>No Response</h1>', {
-					status: 404,
-					statusText: 'Resource Not Found',
-					headers: new Headers({'Content-Type': 'text/html'})
-				});
+		event.waitUntil(
+			//return next to last number for installed worker
+			caches.keys().then(keys => {     
+				Promise.all(
+					old_caches = keys.filter(key => key.startsWith("reviews-v"))
+				).then(old_caches => {
+					old_caches.forEach((key, index) => {
+						version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+						old_caches[index] = version_num;   
+					})
+					//get latest version number
+					version_num = Math.max.apply(Math, old_caches).toString();
+					return version_num;
+				}).then(function() {
+					console.log("fetch version_num:" + version_num);
+				})
 			})
-		})
-	);
+		);
+		
+		event.respondWith(
+		
+			caches.open('reviews-v' + version_num).then(cache => {
+		
+				cache.match(event.request).then(cached => {
+					
+					if(cached) return cached;
+									
+					dbPromise.then(db => {
+						var tx_read=db.transaction('reviews_get'); 
+						var reviewsStore=tx_read.objectStore('reviews_store');
+						var storeIndex = reviewsStore.index('store_request');
+						
+						return storeIndex.get(event.request);
+					}).then(idbResponse => {      
+						return new Response(idbResponse);
+					}).catch(e => {
+						return new Response('<h1>No Response</h1>', {
+							status: 404,
+							statusText: 'Resource Not Found',
+							headers: new Headers({'Content-Type': 'text/html'})
+						});
+					})
+				})
+			})
+		);
+		
+	}else{
+		
+		event.respondWith(
+			fetch(event.request).then(response => {
+				return response;
+			}).catch(e => console.log("Error:", e))
+		);
+		
+	}
 	
 });
 

@@ -2,6 +2,8 @@
 <html lang="en">
 
 <head><!-- add viewport meta -->
+  <link rel="manifest" href="manifest.json">  
+  <meta name="theme-color" content="#3b33db">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <!-- Normalize.css for better cross-browser consistency -->
   <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
@@ -96,7 +98,9 @@
     window.onload = () => {
       var map_frame = document.getElementsByTagName("iframe")
       map_frame.title = "Reataurant Map";
-    };
+    
+	
+	};
     
     document.getElementById("footer").getElementsByTagName("a")[0].onblur= () => {
       document.getElementById("skip-link").focus();
@@ -109,21 +113,8 @@
     document.addEventListener("DOMContentLoaded", function() {
       addRemoveList();
     });
-    window.addEventListener('resize', addRemoveList);
+    window.addEventListener('resize', addRemoveList);	
 	
-	window.addEventListener('scroll', hideShowList);
-	
-	function hideShowList() {
-		
-		document.getElementById('reviews-list').getElementsByTagName('li').forEach(function(el) {
-			if(el.offset.top > window.innerHeigth || el.offset.top + el.height < 0){
-			  el.style.display = "none";
-			} else {
-			  el.style.display="display";
-			}
-		});
-		
-	};
   </script>
   
   <script src="js/idb.js" defer></script>
