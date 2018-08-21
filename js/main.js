@@ -87,7 +87,7 @@ window.initMap = () => {
  * Update page and map for current restaurants.
  */
 function updateRestaurants(){
-	console.log("updateRestaurants");
+	//console.log("updateRestaurants");
   const cSelect = document.getElementById('cuisines-select');
   const nSelect = document.getElementById('neighborhoods-select');
 
@@ -101,7 +101,7 @@ function updateRestaurants(){
     if (error) { // Got an error!
       console.error(error);
 	  if(error.toString()==='ReferenceError: google is not defined'){
-		  console.log('ReferenceError');
+		  //console.log('ReferenceError');
 		loadRestaurantImages();
 	  }
     } else {
@@ -116,12 +116,12 @@ function updateRestaurants(){
  * Hide/show images.
  */
 function hideShowList(){
-		console.log("hideShowList");
+		//console.log("hideShowList");
 		var el = document.querySelectorAll('#restaurants-list picture');
 		var li = document.querySelectorAll('#restaurants-list li');
-		console.log(el.length, li.length, el.length < li.length);
+		//console.log(el.length, li.length, el.length < li.length);
 		if(el.length < li.length){
-			console.log("loadRestaurantImages()");
+			//console.log("loadRestaurantImages()");
 			loadRestaurantImages();
 		}else{
 			for (var i = 0; i < el.length; ++i) {
@@ -197,14 +197,14 @@ function createRestaurantHTML(restaurant){
  * Load images 
  */
 function loadRestaurantImages(restaurants = self.restaurants){
-	console.log("loadRestaurantImages");
+	//console.log("loadRestaurantImages");
 	const el = document.querySelectorAll('#restaurants-list li');
   
 	for (var i = 0; i < el.length; ++i) {
 		var elBox = el[i].getBoundingClientRect();
 		
 		if(elBox.top > window.innerHeight || elBox.top + elBox.height < 0){
-			console.log(i, "item is off screen");
+			//console.log(i, "item is off screen");
 		} else if(document.querySelectorAll("#restaurants-list picture")[i] === undefined){
 			const picture = document.createElement('picture');  
 			const source_webp = document.createElement('source');
