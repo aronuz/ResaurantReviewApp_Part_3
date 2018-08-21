@@ -55,7 +55,9 @@ var cacheScope = [
 		'/images/10-400_mid.webp',
 		'/js/dbhelper.js',
 		'/js/main.js',
-		'/js/restaurant_info.js'
+		'/js/restaurant_info.js',
+		'/js/toggleview.js',
+		'/js/idb.js'
 	];
 	
 if (!String.prototype.startsWith) {
