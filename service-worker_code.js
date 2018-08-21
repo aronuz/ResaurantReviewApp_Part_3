@@ -7,7 +7,7 @@ var cacheScope = [
 		'/',
         '/index.html',
         '/restaurant.html',
-		'/css/styles.css',
+		'/css/styles_all.css',
 		'/images/1-200_small.jpg',
 		'/images/2-200_small.jpg',
 		'/images/3-200_small.jpg',
@@ -109,7 +109,10 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("fetch", event => {
-	console.log('Fetching');			
+	console.log('Fetching');		
+	if ( event.request.url.indexOf('staticmap') == -1 && (event.request.url.indexOf('fonts.googleapis.com') > -1 || event.request.url.indexOf('maps.googleapis.com') > -1 || event.request.url.indexOf('maps.gstatic.com') > -1)) {
+		return;
+	}	
 		
 	if ( event.request.method == 'POST' ) {
 		

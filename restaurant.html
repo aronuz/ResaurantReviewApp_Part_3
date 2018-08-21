@@ -6,13 +6,20 @@
   <meta name="theme-color" content="#3b33db">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <!-- Normalize.css for better cross-browser consistency -->
-  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
+  <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" disable/>
   <!-- Main CSS file -->
-  <link rel="stylesheet" href="css/styles.css" type="text/css">
+
+  <link rel="preload" href="https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxK.woff2" as="font" crossorigin type="font/woff2">
+   <link rel="preload" href="https://fonts.gstatic.com/s/roboto/v18/KFOlCnqEu92Fr1MmEU9fBBc4.woff2" as="font" crossorigin type="font/woff2">
+   <link rel="preload" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" as="style">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700">
   <title>Restaurant Info</title>
 </head>
 
 <body class="inside"><!-- skip link & rearrenge nav-->
+	<link rel="modulepreload" href="js/idb.js">
+	<link rel="modulepreload" href="js/dbhelper.js">
+	<script type="module" src="js/restaurant_info.js"></script> 
   <!-- Beginning header -->
   <header>
     <a href="#maincontent" id="skip-link" class="skip-to-main" tabindex="0">Proceed to main section</a>
@@ -84,6 +91,7 @@
   <!-- End footer -->
 
   <!-- Beginning scripts -->
+  <script src="js/idb.js" defer></script>
   <!-- Toggle Restaurant list and details display-->
   <script type="application/javascript" charset="utf-8" src="js/toggleview.js"></script>
   <!-- Database helpers -->
@@ -117,8 +125,13 @@
 	
   </script>
   
-  <script src="js/idb.js" defer></script>
+  
   <script src="sw_register.js" defer></script>
+  
+    <link rel="stylesheet" href="css/styles_all.css" type="text/css">
+  <link rel="stylesheet" href="css/styles_max500px.css" type="text/css" media="screen and (max-width:500px)">
+  <link rel="stylesheet" href="css/styles_min501px.css" type="text/css" media="screen and (min-width:501px) and (max-width:800px)">
+  <link rel="stylesheet" href="css/styles_min801px.css" type="text/css" media="screen and (min-width:801px)">
   
 </body>
 
