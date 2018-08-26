@@ -2,6 +2,7 @@ importScripts( '/js/idb.js' );
 
 var versions = [];
 var old_caches = [];
+var version_num;
 
 var cacheScope = [
 		'/',
