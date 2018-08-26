@@ -37,8 +37,8 @@
       <h1><a href="/">Restaurant Reviews</a></h1>
     
       <!-- Beginning breadcrumb -->
-      <ul id="breadcrumb" >
-        <li><a href="/">Home</a></li>
+      <ul role="navigation" id="breadcrumb" >
+        <li><a href="/" aria-label="back to restaurant list">Home</a></li>
       </ul>
       <!-- End breadcrumb -->
     </nav>
@@ -66,7 +66,7 @@
          </div>          
           <div class="box box-reviews">
               <!-- Beginning reviews -->
-              <section id="reviews-container">
+              <section aria-label="restaurant reviews" id="reviews-container">
                 <ul id="reviews-list"></ul>
               </section>
               <!-- End reviews -->
@@ -75,8 +75,8 @@
           </div> 
           <div class="box box_map" id="map_div">
             <!-- Beginning map -->
-              <section id="map-container">
-                <div id="map"></div>
+              <section aria-label="restaurant map" id="map-container">
+                <div role="application" id="map"></div>
               </section>
             <!-- End map -->
           </div>      

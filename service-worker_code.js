@@ -1,6 +1,6 @@
 importScripts( '/js/idb.js' );
 
-var version_num = '1';
+var versions = [];
 var old_caches = [];
 
 var cacheScope = [
@@ -67,18 +67,6 @@ if (!String.prototype.startsWith) {
   };
 }
 
-/*let dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
-	switch(upgradeDb.oldVersion){
-		case 1:
-			var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-			reviewsStore.createIndex('store_request', 'store_request');
-		case 2:
-		default:
-			var reviewsStore = upgradeDb.transaction.objectStore('reviews_store');
-
-	}
-}); */
-
 let dbPromise=idb.open('restraurant_db', 1);
 	
 self.addEventListener("install", event => { 
@@ -89,17 +77,21 @@ self.addEventListener("install", event => {
 			Promise.all(
 				old_caches = keys.filter(key => key.startsWith("reviews-v"))
 			).then(old_caches => {
+				console.log("Filtered 'reviews' caches");
 				old_caches.forEach((key, index) => {
 					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-					old_caches[index] = version_num;   
+					versions[index] = version_num;   
 				})
 				//get latest version number and add next one
-				version_num = (Math.max.apply(Math, old_caches) + 1).toString();
+				version_num = (Math.max.apply(Math, versions) + 1);
+				version_num = (isFinite(version_num)===true)? version_num.toString(): '1';
+				console.log("next version_num: " + version_num);
 				return version_num;
 			}).then(version_num => {
 				console.log("installing version_num:" + version_num);
 				caches.open('reviews-v' + version_num)
 				.then(cache => {
+					console.log('Opened cache');
 					cache.addAll(cacheScope);
 				})
 			}).then(() => {
@@ -111,84 +103,70 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("fetch", event => {
-	console.log('Fetching');		
-	if ( event.request.url.indexOf('staticmap') == -1 && (event.request.url.indexOf('fonts.googleapis.com') > -1 || event.request.url.indexOf('maps.googleapis.com') > -1 || event.request.url.indexOf('maps.gstatic.com') > -1)) {
-		return;
-	}	
-		
-	if ( event.request.method == 'POST' ) {
-		
-		event.request.json().then( resp => {
-			dbPromise.then(db => {
-				var tx_write=db.transaction('reviews_get', 'readwrite'); 
-				var reviewsStore=tx_write.objectStore('reviews_store');
-				var storeIndex = reviewsStore.index('store_request');
+	console.log('Fetching');	
+
+	event.respondWith(
+		caches.match(event.request)
+			.then(function(response) {
+				// Cache hit - return response
+				if (response) {
+				  return response;
+				}
 				
-				reviewsStore.add({
-					store_request: event.request,
-					store_response: resp
-				});
-				return tx_write.complete;
-			}).then(complete => {      
-				console.log("db write success:", complete);
-			})
-		})
-		
-		event.waitUntil(
-			//return next to last number for installed worker
-			caches.keys().then(keys => {     
-				Promise.all(
-					old_caches = keys.filter(key => key.startsWith("reviews-v"))
-				).then(old_caches => {
-					old_caches.forEach((key, index) => {
-						version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-						old_caches[index] = version_num;   
-					})
-					//get latest version number
-					version_num = Math.max.apply(Math, old_caches).toString();
-					return version_num;
-				}).then(function() {
-					console.log("fetch version_num:" + version_num);
-				})
-			})
-		);
-		
-		event.respondWith(
-		
-			caches.open('reviews-v' + version_num).then(cache => {
-		
-				cache.match(event.request).then(cached => {
+				var fetchRequestToDB = event.request.clone();
+				
+				dbPromise.then(db => {
+					var tx_read=db.transaction('reviews_get'); 
+					var reviewsStore=tx_read.objectStore('reviews_store');
 					
-					if(cached) return cached;
-									
-					dbPromise.then(db => {
-						var tx_read=db.transaction('reviews_get'); 
-						var reviewsStore=tx_read.objectStore('reviews_store');
-						var storeIndex = reviewsStore.index('store_request');
-						
-						return storeIndex.get(event.request);
-					}).then(idbResponse => {      
-						return new Response(idbResponse);
-					}).catch(e => {
-						return new Response('<h1>No Response</h1>', {
-							status: 404,
-							statusText: 'Resource Not Found',
-							headers: new Headers({'Content-Type': 'text/html'})
-						});
-					})
+					return storeIndex.get(fetchRequestToDB);
+				}).then(idbResponse => {      
+					return new Response(idbResponse.store_response);
+				}).catch(e => {
+					console.error("IDB Fail: " + e);
 				})
+
+				// IMPORTANT: Clone the request. A request is a stream and
+				// can only be consumed once. Since we are consuming this
+				// once by cache and once by the browser for fetch, we need
+				// to clone the response.
+				var fetchRequest = event.request.clone();
+
+				return fetch(fetchRequest).then(
+				  function(response) {
+					// Check if we received a valid response
+					if(!response || response.status !== 200 || response.type !== 'basic') {
+					  return response;
+					}
+					
+					// IMPORTANT: Clone the response. A response is a stream
+					// and because we want the browser to consume the response
+					// as well as the cache consuming the response, we need
+					// to clone it so we have two streams.
+					var responseToCache = response.clone();
+					
+					fetchRequest.json().then( resp => {
+						dbPromise.then(db => {
+							var tx_write=db.transaction('reviews_get', 'readwrite'); 
+							var reviewsStore=tx_write.objectStore('reviews_store');
+							
+							reviewsStore.put({
+								store_request: event.request,
+								store_response: resp
+							});
+							return tx_write.complete;
+						}).then(complete => {      
+							console.log("db write success: " + complete);
+						}).catch(e => {
+							console.error("IDB Fail: " + e);
+						})
+					})
+					
+					return response;
+				  }
+				);
 			})
-		);
-		
-	}else{
-		
-		event.respondWith(
-			fetch(event.request).then(response => {
-				return response;
-			}).catch(e => console.log("Error:", e))
-		);
-		
-	}
+    );
 	
 });
 
@@ -201,16 +179,18 @@ self.addEventListener("activate", event => {
 			).then(old_caches => {
 				old_caches.forEach((key, index) => {
 					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
-					old_caches[index] = version_num;   
+					versions[index] = version_num;   
 				})
 				//get latest version number and add next one
-				version_num = Math.max.apply(Math, old_caches).toString();
+				version_num = Math.max.apply(Math, versions).toString();
+				console.log("last version_num: " + version_num);
 				return version_num;
 			}).then(version_num => {
 				console.log("activating version_num:" + version_num);
 				caches.keys().then(keys => {
 					return keys.filter(key => {key.startsWith("reviews-v") && !key.endsWith(version_num)});
 				}).then(keys => {
+					console.log("removing old caches");
 					return Promise.all(
 						keys.map(key => {
 							return key.delete(key);

@@ -40,8 +40,8 @@
     
    <div class="container">
      <div class="box box_map" id="map_div" style="">
-        <section id="map-container">
-			<div id="map">
+        <section aria-label="map of restaurants" id="map-container">
+			<div role="application" id="map">
 				<img id="static-map" src="https://maps.googleapis.com/maps/api/staticmap?center=40.722216,-73.987501&zoom=12&size=1000x1000&key=AIzaSyAPrB914ACdynP-eDld_j_CH7Qa4GQmsU4&signature=cQmmsPsdjrsMkRukP41rV7syIDQ=" style="margin:5% 15%;">
 			</div>
         </section>
@@ -84,7 +84,7 @@
     window.onload = () => {
       var map_frame = document.getElementsByTagName("iframe")
       map_frame.title = "Reataurant Map";
-      console.log(map_frame);
+      //console.log(map_frame);
       
       document.getElementsByTagName("body").onfocus = () => {
         document.getElementById("skip-link").focus();
