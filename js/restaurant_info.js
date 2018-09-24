@@ -52,6 +52,21 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   const name = document.getElementById('restaurant-name');
   name.innerHTML = restaurant.name;
 
+  const favorite_link = document.createElement('a');
+  favorite_link.setAttribute('href', '');
+  favorite_link.setAttribute('id', 'setfavorite');
+  favorite_link.setAttribute('onclick', 'setFavorite(${restaurant.id}, ${restaurant.isfavorite});');
+  document.getElementById('restaurant-name').appendChild(favorite_link);
+  
+  const star_icon = document.createElement('img');
+  const star_src = (restaurant.isfavorite == true) ? 'images/icons/star.png' : 'images/icons/blankstar.png';
+  const star_alt = (restaurant.isfavorite == true) ? 'favorite' : 'not favorite';
+  
+  star_icon.setAttribute('src', star_src);
+  star_icon.setAttribute('alt', star_alt);
+  star_icon.setAttribute('id', 'setfavorite');
+  favorite_link.appendChild(star_icon);  
+
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
 
@@ -88,6 +103,10 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   fillReviewsHTML();
 }
 
+setFavorite = (id, isfavorite) => {
+	DBHelper.setFavorite(id, !isfavorite);
+} 
+
 /**
  * Create restaurant operating hours HTML table and add it to the webpage.
  */
@@ -116,7 +135,14 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const title = document.createElement('h2');
   title.innerHTML = 'Reviews';
   container.appendChild(title);
-
+  
+  container.appendChild(addReviewHTML());
+  
+  document.getElementById("author_label").innerText = "Name: ";
+  document.getElementById("rating_label").innerText = "Rating: ";
+  document.getElementById("comment_label").innerText = "Comments: ";
+  document.getElementById("submit_button").innerText = "Add Review";
+  
   if (!reviews) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
@@ -128,6 +154,76 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
     ul.appendChild(createReviewHTML(review));
   });
   container.appendChild(ul);
+}
+
+/**
+ * Create new review form HTML and add it to the webpage.
+ */
+addReviewHTML = (id = self.restaurant.id) => {
+	console.log("review for " + id);
+  
+  const review_form = document.createElement('div');
+  review_form.setAttribute('id', 'new_review');
+  
+  const review_author = document.createElement('input');
+  review_author.setAttribute('type', 'text');
+  review_author.setAttribute('id', 'author');
+  review_form.appendChild(review_author);
+  
+  const label_author = document.createElement('label');
+  label_author.setAttribute('for', 'author');
+  label_author.setAttribute('id', 'author_label');
+  review_form.insertBefore(label_author, review_author);
+   
+  const rating = document.createElement('input');
+  rating.setAttribute('type', 'range');
+  rating.setAttribute('id', 'rating');
+  rating.setAttribute('min', '1');
+  rating.setAttribute('max', '5');
+  review_form.appendChild(rating);
+  
+  const label_rating = document.createElement('label');
+  label_rating.setAttribute('for', 'rating');
+  label_rating.setAttribute('id', 'rating_label');
+  review_form.insertBefore(label_rating, rating)
+  
+  const comments = document.createElement('textarea');
+  comments.setAttribute('type', 'text');
+  comments.setAttribute('id', 'comment');
+  comments.setAttribute('rows', '5');
+  comments.setAttribute('cold', '40');
+  review_form.appendChild(comments);
+  
+  const label_comments = document.createElement('label');
+  label_comments.setAttribute('for', 'comment');
+  label_comments.setAttribute('id', 'comment_label');
+  review_form.insertBefore(label_comments, comments);
+  
+  
+  const submit_review = document.createElement('input');
+  submit_review.setAttribute('type', 'button'); 
+  submit_review.setAttribute('id', 'submit_button');
+  submit_review.setAttribute('onclick', 'addReview(' + id +');');
+  review_form.appendChild(submit_review);
+
+  return review_form;
+}
+
+addReview = (id) => {
+  const name = encodeURI(document.getElementById("author").value);
+  const rating = document.getElementById("rating").value;
+  const comment = encodeURI(document.getElementById("comment").value);
+  
+  if(name && comment){
+	  const body = {
+		  restaurant_id: id,
+		  name: name,
+		  rating: rating,
+		  comments: comment
+	  }
+	  
+	  DBHelper.addReview(body);
+  }
 }
 
 /**
