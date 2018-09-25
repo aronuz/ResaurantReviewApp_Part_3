@@ -67,7 +67,7 @@ class DBHelper {
         let restaurant = restaurants.find(r => r.id == id);
         if (restaurant) { // Got the restaurant
 			restaurant.isfavorite = false;
-			fetch(DBHelper.DATABASE_URL + '/restaurants?is_favorite=true', {method: 'GET'}).then(response => {
+			fetch(DBHelper.DATABASE_URL + '/restaurants/?is_favorite=true', {method: 'GET'}).then(response => {
 				restaurants = response.json().then(faveRestaurants => {
 					if (faveRestaurants && faveRestaurants.length > 0){
 						restaurant.isfavorite = (faveRestaurants.indexOf(restaurant) > -1) ? true : false;
@@ -211,7 +211,7 @@ class DBHelper {
   
   static setFavorite(id, is_favorite) {
 	  console.log(`setting ${is_favorite} favorite`);
-    const url = `${DBHelper.DATABASE_URL}/${id}/?is_favorite=${is_favorite}`;
+    const url = `${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${is_favorite}`;
     const method = "PUT";
     DBHelper.updateOnlineDB(url, method);
   }

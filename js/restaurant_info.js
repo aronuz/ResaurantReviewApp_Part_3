@@ -142,7 +142,6 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   document.getElementById("author_label").innerText = "Name: ";
   document.getElementById("rating_label").innerText = "Rating: ";
   document.getElementById("comment_label").innerText = "Comments: ";
-  document.getElementById("submit_button").innerText = "Add Review";
   
   if (!reviews) {
     const noReviews = document.createElement('p');
@@ -204,9 +203,10 @@ addReviewHTML = (id = self.restaurant.id) => {
   const submit_review = document.createElement('input');
   submit_review.setAttribute('type', 'button'); 
   submit_review.setAttribute('id', 'submit_button');
+  submit_review.setAttribute('value', 'Add Review');
   submit_review.setAttribute('onclick', 'addReview(' + id +');');
   review_form.appendChild(submit_review);
-
+      
   return review_form;
 }
 
