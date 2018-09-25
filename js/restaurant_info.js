@@ -53,9 +53,9 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   name.innerHTML = restaurant.name;
 
   const favorite_link = document.createElement('a');
-  favorite_link.setAttribute('href', '');
+  favorite_link.setAttribute('href', '#');
   favorite_link.setAttribute('id', 'setfavorite');
-  favorite_link.setAttribute('onclick', 'setFavorite(${restaurant.id}, ${restaurant.isfavorite});');
+  favorite_link.setAttribute('onclick', 'setFavorite();return false;');
   document.getElementById('restaurant-name').appendChild(favorite_link);
   
   const star_icon = document.createElement('img');
@@ -103,7 +103,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   fillReviewsHTML();
 }
 
-setFavorite = (id, isfavorite) => {
+setFavorite = (id = self.restaurant.id, isfavorite = self.restaurant.isfavorite) => {
+	console.log("Updating Favorite");
 	DBHelper.setFavorite(id, !isfavorite);
 } 
 

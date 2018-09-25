@@ -9,6 +9,8 @@ var cacheScope = [
         '/index.html',
         '/restaurant.html',
 		'/css/styles_all.css',
+		'/images/icons/star.png',
+		'/images/icons/blankstar.png',
 		'/images/1-200_small.jpg',
 		'/images/2-200_small.jpg',
 		'/images/3-200_small.jpg',
@@ -105,6 +107,7 @@ self.addEventListener("install", event => {
 
 self.addEventListener("fetch", event => {
 	console.log('Fetching');	
+	if (event.request.method != 'GET') return;					   
 
 	event.respondWith(
 		caches.match(event.request)

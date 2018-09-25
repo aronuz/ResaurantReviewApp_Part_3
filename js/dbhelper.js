@@ -23,10 +23,9 @@ class DBHelper {
 	var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
 		var restaurantStore = upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
 		var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-		var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'url'});
+		var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'id', autoIncrement: true });
 		reviewsStore.createIndex('store_request', 'store_request');
-		pendingStore.createIndex('url', 'url');
-	})
+	});
         
     dbPromise.then(db => {//console.log(db);
       var tx_read=db.transaction('restraurant_store');
@@ -211,55 +210,64 @@ class DBHelper {
   }
   
   static setFavorite(id, is_favorite) {
+	  console.log(`setting ${is_favorite} favorite`);
     const url = `${DBHelper.DATABASE_URL}/${id}/?is_favorite=${is_favorite}`;
     const method = "PUT";
     DBHelper.updateOnlineDB(url, method);
   }
   
   static addReview(body){
-	const url = `${DBHelper.DATABASE_URL}/review`;
+	const url = `${DBHelper.DATABASE_URL}/reviews`;
     const method = "POST";
     DBHelper.updateOnlineDB(url, method, body);
   }
   
   static updateOnlineDB(url, method, body = ''){
-		fetch(url, {method: method, body: body}).then(response => {
-			if(!response.ok && !response.redirected){
-				DBHelper.updateOfflineDB(url, method, body);
-				return;
-			}		
-		});
-		
-	dbPromise.then(db => {
-      var tx_read_offline=db.transaction('pending_store');
-      var pendingStore=tx_read_offline.objectStore('pending_store');
-      return pendingStore.openCursor();
-    }).then(function (cursor){
-		if(!cursor) return;
+	let dbPromise=idb.open('restraurant_db', 1);
+	  
+	fetch(url, {method: method, body: body}).then(response => {
+		if(!response.ok && !response.redirected){
+			DBHelper.updateOfflineDB(url, method, body);
+			return;
+		}		
 	}).then(
-		function getPenging(cursor){
+		dbPromise.then(db => {
+		  var tx_read_offline=db.transaction('pending_store');
+		  var pendingStore=tx_read_offline.objectStore('pending_store');
+		  return pendingStore.openCursor();
+		}).then(function (cursor){
 			if(!cursor) return;
-			var url = cursor.value.url;
-			var method = cursor.value.method;
-			var body = (cursor.value.body == '')? '' : JSON.stringify(cursor.value.body);
-			if(url && method && body){
-				fetch(url, {method: method, body: body}).then(response => {
-					if(!response.ok && !response.redirected){
-						return;
-					}		
-				});
-			}else{
-				cursor.delete;
+		}).then(
+			function getPenging(cursor){
+				if(!cursor) return;
+				var url = cursor.value.url;
+				var method = cursor.value.method;
+				var body = (cursor.value.body == '')? '' : JSON.stringify(cursor.value.body);
+				if(url && method && body){
+					fetch(url, {method: method, body: body}).then(response => {
+						if(!response.ok && !response.redirected){
+							return;
+						}		
+					});
+				}else{
+					cursor.delete;
+				}
+				return cursor.continue().then(getPenging);
 			}
-			return cursor.continue().then(getPenging);
-		}
+		).catch(e => {
+		  console.log(e);
+		})
 	).catch(e => {
-      console(e);
-    })
+		DBHelper.updateOfflineDB(url, method, body);
+		console.log(e);
+	})	
   }
   
   static updateOfflineDB(url, method, body){
+	let dbPromise=idb.open('restraurant_db', 1);
+	  
 	dbPromise.then(db => {
+		console.log("Saving offline");
 		var tx_write_offline=db.transaction('pending_store', 'readwrite');
 		var pendingStore=tx_write_offline.objectStore('pending_store');
 		pendingStore.add({
@@ -268,7 +276,7 @@ class DBHelper {
 			body: body
 		})
 	}).catch(e => {
-      console(e);
+      console.log(e);
     })
   }	
 }
