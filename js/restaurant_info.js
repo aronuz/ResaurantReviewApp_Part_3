@@ -237,6 +237,9 @@ addReview = (id) => {
 		  comments: comment
 	  }
 	  
+	  document.getElementById("author").value = '';
+	  document.getElementById("rating").value = 5;
+	  document.getElementById("comment").value = '';
 	  DBHelper.addReview(body);
   }
 }
