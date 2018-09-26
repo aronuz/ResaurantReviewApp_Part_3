@@ -298,10 +298,13 @@ class DBHelper {
   
   static updateOnlineDB(url, method, body, update = true){
 	let dbPromise=idb.open('restraurant_db', 1);
+	const rest_id = body.restaurant_id;
 	  
+	if(update){
+		DBHelper.updateOfflineDB(url, method, body);
+	}  
 	fetch(url, {method: method, body: body}).then(response => {
 		if(!response.ok && !response.redirected && update){
-			DBHelper.updateOfflineDB(url, method, body);
 			return;
 		}		
 	}).then(
@@ -318,11 +321,14 @@ class DBHelper {
 				var method = cursor.value.method;
 				var body = (cursor.value.method == 'PUT')? '' : JSON.stringify(cursor.value.body);
 				if(url && method && body){
-					fetch(url, {method: method, body: body}).then(response => {
-						if(!response.ok && !response.redirected){
-							return;
-						}		
-					});
+					console.log("body rest_id="+rest_id);
+					if(body.restaurant_id != rest_id){
+						fetch(url, {method: method, body: body}).then(response => {
+							if(!response.ok && !response.redirected){
+								return;
+							}		
+						});
+					}
 				}else{
 					cursor.delete;
 				}
@@ -331,10 +337,7 @@ class DBHelper {
 		).catch(e => {
 		  console.log(e);
 		})
-	).catch(e => {
-		if(update){
-			DBHelper.updateOfflineDB(url, method, body);
-		}
+	).catch(e => {		
 		console.log(e);
 	})	
   }
