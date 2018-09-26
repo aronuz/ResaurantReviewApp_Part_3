@@ -40,6 +40,7 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
+	  setFavorite(self.restaurant.id, self.restaurant.isfavorite, false);
       callback(null, restaurant)
     });
   }
@@ -103,8 +104,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   fillReviewsHTML();
 }
 
-setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite) => {
-	console.log("Updating Favorite");
+setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite, update = true) => {
+	console.log("Updating Favorite: "+isfavorite);
 	self.restaurant.isfavorite = isfavorite;
 	let star_src, star_alt;
 	const star_icon = document.getElementById('imagefavorite');
@@ -123,7 +124,7 @@ setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite
 		  restaurant_id: id
 	}
 	
-	DBHelper.setFavorite(id, isfavorite, body);
+	DBHelper.setFavorite(id, isfavorite, body, update);
 } 
 
 /**

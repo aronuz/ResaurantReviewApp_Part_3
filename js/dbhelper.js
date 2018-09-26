@@ -66,66 +66,93 @@ class DBHelper {
       } else {
         let restaurant = restaurants.find(r => r.id == id);
         if (restaurant) { // Got the restaurant
-			restaurant.isfavorite = false;
+			restaurant.isfavorite = null;
 			
-			async function favorite_restaurants(id){			
-				try{
-					var response = await fetch(DBHelper.DATABASE_URL + '/restaurants/?is_favorite=true', {method: 'GET'});
-					var favorite_restaurants = await response.json();
-					
-					console.log("favorite_restaurants: "+favorite_restaurants);
-					
-					if (favorite_restaurants && favorite_restaurants.length > 0){
-						for (let favorite_restaurant of favorite_restaurants){
-						
-							if(id == favorite_restaurant.id){
-								console.log("isfavorite id="+id);
-								restaurant.isfavorite = true;
-								break;
-							}							
-						};
-						
-						console.log("restaurant.isfavorite: "+restaurant.isfavorite);						
-					}
-					
-				}catch(e){
-					console.log(e);
-					let dbPromise=idb.open('restraurant_db', 1);					
-					let restaurant_ids = [];
-					
-					dbPromise.then(db => {
-					  var tx_read_offline=db.transaction('pending_store');
-					  var pendingStore=tx_read_offline.objectStore('pending_store');
-					  return pendingStore.openCursor();
-					}).then(function getPenging(cursor){
-							console.log("restaurant_ids: "+restaurant_ids);
-							if(!cursor) return restaurant_ids;
-							var body = cursor.value.body;
-							var url = cursor.value.url;
-							console.log("url: "+url);
-							if(body && url.indexOf("is_favorite") > -1){
-								restaurant_ids.push(body.restaurant_id);
-							}
-							console.log("restaurant_ids: "+restaurant_ids);
-							return cursor.continue().then(getPenging);							
-					}).then(
-						(restaurant_ids) => {
-							console.log("restaurant.id: "+restaurant.id);
-							if(restaurant_ids.indexOf(restaurant.id)) {
-								restaurant.isfavorite = true;
-								console.log("set restaurant.isfavorite: "+restaurant.isfavorite);
-							}
-							console.log("restaurant_ids: "+restaurant_ids);
-						}
-					).catch(e => {
-					  console.log(e);
-					})					
-				}finally{
-					callback(null, restaurant);
+			let dbPromise=idb.open('restraurant_db', 1);					
+			let favorite_restaurant_ids = [];
+			
+			dbPromise.then(db => {
+				var tx_read_offline=db.transaction('pending_store');
+				var pendingStore=tx_read_offline.objectStore('pending_store');
+				return pendingStore.openCursor();
+			}).then(function getPenging(cursor){
+				if(!cursor) return favorite_restaurant_ids;
+				var body = cursor.value.body;
+				var url = cursor.value.url;
+				var rest_id = body.restaurant_id;
+				var un_rest_id = "0"+rest_id;
+				console.log("url: "+url+" rest_id: "+rest_id);
+				if(body && url.indexOf("is_favorite=true") > -1){
+					console.log("fav");
+					favorite_restaurant_ids.splice(favorite_restaurant_ids.indexOf(un_rest_id), 1);	
+					favorite_restaurant_ids.push(rest_id);							
+					console.log("---favorite_restaurant_ids: "+favorite_restaurant_ids+" rest_id="+rest_id);
+				}else if(body && url.indexOf("is_favorite=false") > -1){
+					console.log("unfav");
+					favorite_restaurant_ids.splice(favorite_restaurant_ids.indexOf(rest_id), 1);
+					favorite_restaurant_ids.push(un_rest_id);
 				}
-			}
+				console.log("favorite_restaurant_ids: "+favorite_restaurant_ids);
+				
+				return cursor.continue().then(getPenging);							
+			}).then(
+				(favorite_restaurant_ids) => {
+					console.log("restaurant.id: "+restaurant.id);
+					var un_rest_id="0"+restaurant.id;
+					if(favorite_restaurant_ids.indexOf(restaurant.id) > -1) {
+						restaurant.isfavorite = true;
+						console.log("set restaurant.isfavorite: "+restaurant.isfavorite);
+					}else if(favorite_restaurant_ids.indexOf(un_rest_id) > -1){
+						restaurant.isfavorite = false;
+						console.log("unset restaurant.isfavorite: "+restaurant.isfavorite);
+					}					
+					return restaurant.isfavorite;
+				}
+			).then(
+				(isfavorite) => {
+					console.log("restaurant.isfavorite == null: "+(restaurant.isfavorite == null));
+					if(isfavorite == null){
+						favorite_restaurants(restaurant.id);
+						async function favorite_restaurants(id){			
+							try{
+								var response = await fetch(DBHelper.DATABASE_URL + '/restaurants/?is_favorite=true', {method: 'GET'});
+								var favorite_restaurants = await response.json();
+								
+								console.log("favorite_restaurants: "+favorite_restaurants);
+								
+								if (favorite_restaurants && favorite_restaurants.length > 0){
+									for (let favorite_restaurant of favorite_restaurants){
+									
+										if(id == favorite_restaurant.id){
+											console.log("isfavorite id="+id);
+											restaurant.isfavorite = true;
+											break;
+										}							
+									};
+									
+									console.log("restaurant.isfavorite: "+restaurant.isfavorite);						
+								}
+								callback(null, restaurant);
+							}catch(e){
+								console.log(e);		
+								callback(null, restaurant);					
+							}
+						}
+					}else{
+						callback(null, restaurant);
+					}
+				}			
+			).catch(e => {
+			  console.log(e);
+			})	
 			
-			favorite_restaurants(restaurant.id);
+			
+			/*if(restaurant.isfavorite == null){
+				console.log("restaurant.isfavorite == null");
+				favorite_restaurants(restaurant.id);
+			}else{
+				callback(null, restaurant);
+			}*/
 
         } else { // Restaurant does not exist in the database
           callback('Restaurant does not exist', null);
@@ -256,11 +283,11 @@ class DBHelper {
     return marker;
   }
   
-  static setFavorite(id, is_favorite, body) {
+  static setFavorite(id, is_favorite, body, update) {
 	  console.log(`setting ${is_favorite} favorite`);
     const url = `${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${is_favorite}`;
     const method = "PUT";
-    DBHelper.updateOnlineDB(url, method, body);
+    DBHelper.updateOnlineDB(url, method, body, update);
   }
   
   static addReview(body){
@@ -269,11 +296,11 @@ class DBHelper {
     DBHelper.updateOnlineDB(url, method, body);
   }
   
-  static updateOnlineDB(url, method, body){
+  static updateOnlineDB(url, method, body, update = true){
 	let dbPromise=idb.open('restraurant_db', 1);
 	  
 	fetch(url, {method: method, body: body}).then(response => {
-		if(!response.ok && !response.redirected){
+		if(!response.ok && !response.redirected && update){
 			DBHelper.updateOfflineDB(url, method, body);
 			return;
 		}		
@@ -305,7 +332,9 @@ class DBHelper {
 		  console.log(e);
 		})
 	).catch(e => {
-		DBHelper.updateOfflineDB(url, method, body);
+		if(update){
+			DBHelper.updateOfflineDB(url, method, body);
+		}
 		console.log(e);
 	})	
   }
