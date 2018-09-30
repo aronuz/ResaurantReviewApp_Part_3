@@ -9,13 +9,16 @@ window.initMap = () => {
     if (error) { // Got an error!
       console.error(error);
     } else {
-      self.map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 16,
-        center: restaurant.latlng,
-        scrollwheel: false
-      });
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+		document.body.addEventListener("mouseenter", function() {
+			document.body.removeAttribute("mouseenter");
+		  self.map = new google.maps.Map(document.getElementById('map'), {
+			zoom: 16,
+			center: restaurant.latlng,
+			scrollwheel: false
+		  });
+		  
+		  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+		});fillBreadcrumb(); 
     }
   });
 }
@@ -40,8 +43,8 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-	  setFavorite(self.restaurant.id, self.restaurant.isfavorite, false);
-      callback(null, restaurant)
+	  //setFavorite(self.restaurant.id, self.restaurant.isfavorite, false);
+	  callback(null, restaurant)
     });
   }
 }
@@ -152,7 +155,12 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
  */
 fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const container = document.getElementById('reviews-container');
+	
+  const review_title = document.getElementById('review_title');
+  if(review_title) review_title.parentNode.removeChild(review_title);
+  
   const title = document.createElement('h2');
+  title.setAttribute("id", "review_title");
   title.innerHTML = 'Reviews';
   container.appendChild(title);
   
@@ -169,6 +177,12 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
     return;
   }
   const ul = document.getElementById('reviews-list');
+    
+	while (ul.hasChildNodes()) {
+		ul.removeChild(ul.lastChild);
+	}
+	
+  console.log(reviews);
   reviews.forEach(review => {
     ul.appendChild(createReviewHTML(review));
   });
@@ -181,6 +195,9 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
 addReviewHTML = (id = self.restaurant.id) => {
 	console.log("review for " + id);
   
+  const new_review = document.getElementById('new_review');
+  if(new_review) new_review.parentNode.removeChild(new_review);
+	
   const review_form = document.createElement('div');
   review_form.setAttribute('id', 'new_review');
   
@@ -230,9 +247,9 @@ addReviewHTML = (id = self.restaurant.id) => {
 }
 
 addReview = (id) => {
-  const name = encodeURI(document.getElementById("author").value);
+  const name = document.getElementById("author").value;
   const rating = document.getElementById("rating").value;
-  const comment = encodeURI(document.getElementById("comment").value);
+  const comment = document.getElementById("comment").value;
   
   if(name && comment){
 	  const body = {
@@ -246,7 +263,14 @@ addReview = (id) => {
 	  document.getElementById("rating").value = 5;
 	  document.getElementById("comment").value = '';
 	  DBHelper.addReview(body);
+	  
+	  location.reload();
   }
+}
+
+deleteReview = (id) => {
+  DBHelper.deleteReview(id);
+  location.reload();
 }
 
 /**
@@ -269,7 +293,14 @@ createReviewHTML = (review) => {
   const comments = document.createElement('p');
   comments.innerHTML = review.comments;
   li.appendChild(comments);
-
+  
+  const delete_review = document.createElement('input');
+  delete_review.setAttribute('type', 'button'); 
+  delete_review.setAttribute('class', 'delete_button');
+  delete_review.setAttribute('value', 'Delete');
+  delete_review.setAttribute('onclick', `deleteReview(${review.id});`);
+  li.appendChild(delete_review); 
+  
   return li;
 }
 

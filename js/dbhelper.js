@@ -64,9 +64,20 @@ class DBHelper {
       if (error) {
         callback(error, null);
       } else {
+		  console.log("restaurants fetched");
         let restaurant = restaurants.find(r => r.id == id);
         if (restaurant) { // Got the restaurant
 			restaurant.isfavorite = null;
+			console.log("restaurant: "+restaurant.id);
+			DBHelper.fetchReviewsById(restaurant.id, (error, reviews) => {
+				if(reviews){
+					restaurant.reviews = reviews;
+					console.log(reviews);
+				}else{
+					console.log(error)
+				}				
+			});
+			
 			
 			let dbPromise=idb.open('restraurant_db', 1);					
 			let favorite_restaurant_ids = [];
@@ -159,6 +170,57 @@ class DBHelper {
         }
       }
     });
+  }
+  
+   /**
+   * Fetch a restaurant reviews by its ID.
+   */
+  static fetchReviewsById(id, callback) {
+	let dbPromise=idb.open('restraurant_db', 1);
+	let reviews = [];
+    // fetch all restaurants with proper error handling.
+    dbPromise.then(db => {
+		var tx_read_offline=db.transaction('pending_store');
+		var pendingStore=tx_read_offline.objectStore('pending_store');
+		return pendingStore.openCursor();
+	}).then(function getPenging(cursor){
+		if(!cursor) return reviews;
+		var body = cursor.value.body;
+		var url = cursor.value.url;
+		console.log("url: "+url);
+		if(body && url.indexOf("reviews") > -1){
+			console.log("push review");
+			reviews.push(body);							
+		}		
+		return cursor.continue().then(getPenging);							
+	}).then(
+		(offline_reviews) => {
+			console.log("!reviews: "+(!reviews));
+			console.log("offline_reviews: "+offline_reviews);
+			get_reviews(id, offline_reviews);
+			async function get_reviews(id, offline_reviews){			
+				try{
+					var response = await fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`, {method: 'GET'});
+					var online_reviews = await response.json();
+					
+					console.log("online_reviews: "+online_reviews);
+					
+					if (online_reviews && online_reviews.length > 0){
+						online_reviews.forEach(online_review => {
+							offline_reviews.push(online_review);
+						});										
+					}
+					callback(null, offline_reviews);					
+				}catch(e){
+					callback(null, offline_reviews);
+					console.log(e);							
+				}
+			}
+		}			
+	).catch(e => {
+	  console.log(e);
+	})	
+
   }
 
   /**
@@ -291,48 +353,65 @@ class DBHelper {
   }
   
   static addReview(body){
-	const url = `${DBHelper.DATABASE_URL}/reviews`;
+	const url = `${DBHelper.DATABASE_URL}/reviews/`;
     const method = "POST";
     DBHelper.updateOnlineDB(url, method, body);
   }
   
-  static updateOnlineDB(url, method, body, update = true){
+  static deleteReview(id){
+	const url = `${DBHelper.DATABASE_URL}/reviews/${id}`;
+    const method = "DELETE";
+    DBHelper.updateOnlineDB(url, method);
+  }
+  
+  static updateOnlineDB(url, method, body = '', update = true){
 	let dbPromise=idb.open('restraurant_db', 1);
 	const rest_id = body.restaurant_id;
 	  
 	if(update){
 		DBHelper.updateOfflineDB(url, method, body);
 	}  
-	fetch(url, {method: method, body: body}).then(response => {
+	fetch(url, {method: method, body: JSON.stringify(body)}).then(response => {
 		if(!response.ok && !response.redirected && update){
 			return;
 		}		
+		console.log("response: "+response);
 	}).then(
 		dbPromise.then(db => {
 		  var tx_read_offline=db.transaction('pending_store');
 		  var pendingStore=tx_read_offline.objectStore('pending_store');
 		  return pendingStore.openCursor();
-		}).then(function (cursor){
-			if(!cursor) return;
 		}).then(
 			function getPenging(cursor){
+				console.log("cursor: "+cursor);
 				if(!cursor) return;
+				 
+				var recId = cursor.value.id;
 				var url = cursor.value.url;
 				var method = cursor.value.method;
-				var body = (cursor.value.method == 'PUT')? '' : JSON.stringify(cursor.value.body);
+				var body = (cursor.value.method == 'PUT')? '' : cursor.value.body;
+				console.log("url: "+url+" method: "+method+" body: "+JSON.stringify(body));
 				if(url && method && body){
-					console.log("body rest_id="+rest_id);
-					if(body.restaurant_id != rest_id){
-						fetch(url, {method: method, body: body}).then(response => {
+
+						fetch(url, {method: method, body: JSON.stringify(body)}).then(response => {
 							if(!response.ok && !response.redirected){
 								return;
-							}		
-						});
-					}
+							}	
+							console.log("response ok");
+							
+							dbPromise.then(db => {
+								var tx_delete=db.transaction('pending_store', 'readwrite');
+								var pendingStore=tx_delete.objectStore('pending_store');
+								
+								pendingStore.delete(recId);
+								console.log("delete id: "+recId)
+							})
+						});	
 				}else{
 					cursor.delete;
-				}
-				return cursor.continue().then(getPenging);
+				}		
+				
+				return cursor.continue().then(getPenging);				
 			}
 		).catch(e => {
 		  console.log(e);
