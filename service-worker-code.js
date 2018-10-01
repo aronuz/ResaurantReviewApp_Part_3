@@ -107,7 +107,7 @@ self.addEventListener("install", event => {
 
 self.addEventListener("fetch", event => {
 	console.log('Fetching');	
-	if (event.request.method != 'GET' || event.request.url.indexOf("reviews") > -1) return;					   
+	if (event.request.method != 'GET' || event.request.url.indexOf("reviews") > -1 || event.request.url.indexOf("map") > -1) return;					   
 
 	event.respondWith(
 		caches.match(event.request)

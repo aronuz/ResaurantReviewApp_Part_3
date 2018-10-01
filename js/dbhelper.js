@@ -11,7 +11,6 @@ class DBHelper {
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
     return `http://localhost:${port}`;
-	//return `http://localhost:${port}/restaurants`;
   }
 
   /**
@@ -64,15 +63,15 @@ class DBHelper {
       if (error) {
         callback(error, null);
       } else {
-		  console.log("restaurants fetched");
+		  //console.log("restaurants fetched");
         let restaurant = restaurants.find(r => r.id == id);
         if (restaurant) { // Got the restaurant
 			restaurant.isfavorite = null;
-			console.log("restaurant: "+restaurant.id);
+			//console.log("restaurant: "+restaurant.id);
 			DBHelper.fetchReviewsById(restaurant.id, (error, reviews) => {
 				if(reviews){
 					restaurant.reviews = reviews;
-					console.log(reviews);
+					//console.log(reviews);
 				}else{
 					console.log(error)
 				}				
@@ -88,40 +87,41 @@ class DBHelper {
 				return pendingStore.openCursor();
 			}).then(function getPenging(cursor){
 				if(!cursor) return favorite_restaurant_ids;
-				var body = cursor.value.body;
 				var url = cursor.value.url;
+				if(url.indexOf("is_favorite") == -1) return cursor.continue().then(getPenging);
+				var body = cursor.value.body;				
 				var rest_id = body.restaurant_id;
 				var un_rest_id = "0"+rest_id;
-				console.log("url: "+url+" rest_id: "+rest_id);
+				//console.log("url: "+url+" rest_id: "+rest_id);
 				if(body && url.indexOf("is_favorite=true") > -1){
-					console.log("fav");
+					//console.log("fav");
 					favorite_restaurant_ids.splice(favorite_restaurant_ids.indexOf(un_rest_id), 1);	
 					favorite_restaurant_ids.push(rest_id);							
-					console.log("---favorite_restaurant_ids: "+favorite_restaurant_ids+" rest_id="+rest_id);
+					//console.log("---favorite_restaurant_ids: "+favorite_restaurant_ids+" rest_id="+rest_id);
 				}else if(body && url.indexOf("is_favorite=false") > -1){
-					console.log("unfav");
+					//console.log("unfav");
 					favorite_restaurant_ids.splice(favorite_restaurant_ids.indexOf(rest_id), 1);
 					favorite_restaurant_ids.push(un_rest_id);
 				}
-				console.log("favorite_restaurant_ids: "+favorite_restaurant_ids);
+				//console.log("favorite_restaurant_ids: "+favorite_restaurant_ids);
 				
 				return cursor.continue().then(getPenging);							
 			}).then(
 				(favorite_restaurant_ids) => {
-					console.log("restaurant.id: "+restaurant.id);
+					//console.log("restaurant.id: "+restaurant.id);
 					var un_rest_id="0"+restaurant.id;
 					if(favorite_restaurant_ids.indexOf(restaurant.id) > -1) {
 						restaurant.isfavorite = true;
-						console.log("set restaurant.isfavorite: "+restaurant.isfavorite);
+						//console.log("set restaurant.isfavorite: "+restaurant.isfavorite);
 					}else if(favorite_restaurant_ids.indexOf(un_rest_id) > -1){
 						restaurant.isfavorite = false;
-						console.log("unset restaurant.isfavorite: "+restaurant.isfavorite);
+						//console.log("unset restaurant.isfavorite: "+restaurant.isfavorite);
 					}					
 					return restaurant.isfavorite;
 				}
 			).then(
 				(isfavorite) => {
-					console.log("restaurant.isfavorite == null: "+(restaurant.isfavorite == null));
+					//console.log("restaurant.isfavorite == null: "+(restaurant.isfavorite == null));
 					if(isfavorite == null){
 						favorite_restaurants(restaurant.id);
 						async function favorite_restaurants(id){			
@@ -129,19 +129,19 @@ class DBHelper {
 								var response = await fetch(DBHelper.DATABASE_URL + '/restaurants/?is_favorite=true', {method: 'GET'});
 								var favorite_restaurants = await response.json();
 								
-								console.log("favorite_restaurants: "+favorite_restaurants);
+								//console.log("favorite_restaurants: "+favorite_restaurants);
 								
 								if (favorite_restaurants && favorite_restaurants.length > 0){
 									for (let favorite_restaurant of favorite_restaurants){
 									
 										if(id == favorite_restaurant.id){
-											console.log("isfavorite id="+id);
+											//console.log("isfavorite id="+id);
 											restaurant.isfavorite = true;
 											break;
 										}							
 									};
 									
-									console.log("restaurant.isfavorite: "+restaurant.isfavorite);						
+									//console.log("restaurant.isfavorite: "+restaurant.isfavorite);						
 								}
 								callback(null, restaurant);
 							}catch(e){
@@ -159,7 +159,7 @@ class DBHelper {
 			
 			
 			/*if(restaurant.isfavorite == null){
-				console.log("restaurant.isfavorite == null");
+				//console.log("restaurant.isfavorite == null");
 				favorite_restaurants(restaurant.id);
 			}else{
 				callback(null, restaurant);
@@ -187,30 +187,25 @@ class DBHelper {
 		if(!cursor) return reviews;
 		var body = cursor.value.body;
 		var url = cursor.value.url;
-		console.log("url: "+url);
+		//console.log("url: "+url);
 		if(body && url.indexOf("reviews") > -1){
-			console.log("push review");
+			//console.log("push review");
 			reviews.push(body);							
 		}		
 		return cursor.continue().then(getPenging);							
 	}).then(
 		(offline_reviews) => {
-			console.log("!reviews: "+(!reviews));
-			console.log("offline_reviews: "+offline_reviews);
+			//console.log("!reviews: "+(!reviews));
+			//console.log("offline_reviews: "+offline_reviews);
 			get_reviews(id, offline_reviews);
 			async function get_reviews(id, offline_reviews){			
 				try{
 					var response = await fetch(DBHelper.DATABASE_URL + `/reviews/?restaurant_id=${id}`, {method: 'GET'});
 					var online_reviews = await response.json();
 					
-					console.log("online_reviews: "+online_reviews);
+					//console.log("online_reviews: "+online_reviews);
 					
-					if (online_reviews && online_reviews.length > 0){
-						online_reviews.forEach(online_review => {
-							offline_reviews.push(online_review);
-						});										
-					}
-					callback(null, offline_reviews);					
+					callback(null, online_reviews);					
 				}catch(e){
 					callback(null, offline_reviews);
 					console.log(e);							
@@ -345,11 +340,11 @@ class DBHelper {
     return marker;
   }
   
-  static setFavorite(id, is_favorite, body, update) {
-	  console.log(`setting ${is_favorite} favorite`);
+  static setFavorite(id, is_favorite, body) {
+	  //console.log(`setting ${is_favorite} favorite`);
     const url = `${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${is_favorite}`;
     const method = "PUT";
-    DBHelper.updateOnlineDB(url, method, body, update);
+    DBHelper.updateOnlineDB(url, method, body);
   }
   
   static addReview(body){
@@ -364,18 +359,18 @@ class DBHelper {
     DBHelper.updateOnlineDB(url, method);
   }
   
-  static updateOnlineDB(url, method, body = '', update = true){
+  static updateOnlineDB(url, method, body = ''){ 
 	let dbPromise=idb.open('restraurant_db', 1);
-	const rest_id = body.restaurant_id;
-	  
-	if(update){
-		DBHelper.updateOfflineDB(url, method, body);
-	}  
-	fetch(url, {method: method, body: JSON.stringify(body)}).then(response => {
-		if(!response.ok && !response.redirected && update){
+	const body_val = JSON.stringify(body);
+	console.log("dbh body: "+body_val);
+	//DBHelper.updateOfflineDB(url, method, body_val);
+	
+	fetch(url, {method: method, body: body_val}).then(response => {
+		if(!response.ok && !response.redirected){
+			DBHelper.updateOfflineDB(url, method, body_val);
 			return;
 		}		
-		console.log("response: "+response);
+		//console.log("response: "+response);
 	}).then(
 		dbPromise.then(db => {
 		  var tx_read_offline=db.transaction('pending_store');
@@ -390,21 +385,21 @@ class DBHelper {
 				var url = cursor.value.url;
 				var method = cursor.value.method;
 				var body = (cursor.value.method == 'PUT')? '' : cursor.value.body;
-				console.log("url: "+url+" method: "+method+" body: "+JSON.stringify(body));
+				//console.log("url: "+url+" method: "+method+" body: "+JSON.stringify(body));
 				if(url && method && body){
 
-						fetch(url, {method: method, body: JSON.stringify(body)}).then(response => {
+						fetch(url, {method: method, body: body}).then(response => {
 							if(!response.ok && !response.redirected){
 								return;
 							}	
-							console.log("response ok");
+							//console.log("response ok");
 							
 							dbPromise.then(db => {
 								var tx_delete=db.transaction('pending_store', 'readwrite');
 								var pendingStore=tx_delete.objectStore('pending_store');
 								
 								pendingStore.delete(recId);
-								console.log("delete id: "+recId)
+								//console.log("delete id: "+recId)
 							})
 						});	
 				}else{
@@ -417,6 +412,7 @@ class DBHelper {
 		  console.log(e);
 		})
 	).catch(e => {		
+		DBHelper.updateOfflineDB(url, method, body_val);
 		console.log(e);
 	})	
   }
@@ -425,7 +421,7 @@ class DBHelper {
 	let dbPromise=idb.open('restraurant_db', 1);
 	  
 	dbPromise.then(db => {
-		console.log("Saving offline");
+		//console.log("Saving offline");
 		var tx_write_offline=db.transaction('pending_store', 'readwrite');
 		var pendingStore=tx_write_offline.objectStore('pending_store');
 		if(url.indexOf("is_favorite") > -1){

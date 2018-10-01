@@ -1,4 +1,5 @@
 let restaurant;
+let latlng;
 var map;
 
 /**
@@ -6,22 +7,26 @@ var map;
  */
 window.initMap = () => {
   fetchRestaurantFromURL((error, restaurant) => {
+	self.latlng=restaurant.latlng;
     if (error) { // Got an error!
       console.error(error);
     } else {
-		document.body.addEventListener("mouseenter", function() {
-			document.body.removeAttribute("mouseenter");
-		  self.map = new google.maps.Map(document.getElementById('map'), {
-			zoom: 16,
-			center: restaurant.latlng,
-			scrollwheel: false
-		  });
-		  
-		  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-		});fillBreadcrumb(); 
+		document.body.addEventListener("mouseenter", loadMap);	
+		fillBreadcrumb(); 
     }
   });
 }
+
+loadMap = () => {
+			document.body.removeEventListener("mouseenter", loadMap);
+			self.map = new google.maps.Map(document.getElementById('map'), {
+				zoom: 16,
+				center: self.latlng,
+				scrollwheel: false
+			});
+		  
+		  DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+		}
 
 /**
  * Get current restaurant from page URL.
@@ -107,8 +112,8 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   fillReviewsHTML();
 }
 
-setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite, update = true) => {
-	console.log("Updating Favorite: "+isfavorite);
+setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite) => {
+	//console.log("Updating Favorite: "+isfavorite);
 	self.restaurant.isfavorite = isfavorite;
 	let star_src, star_alt;
 	const star_icon = document.getElementById('imagefavorite');
@@ -127,7 +132,7 @@ setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite
 		  restaurant_id: id
 	}
 	
-	DBHelper.setFavorite(id, isfavorite, body, update);
+	DBHelper.setFavorite(id, isfavorite, body);
 } 
 
 /**
@@ -153,7 +158,7 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+fillReviewsHTML = (reviews = self.restaurant.reviews) => { 
   const container = document.getElementById('reviews-container');
 	
   const review_title = document.getElementById('review_title');
@@ -170,7 +175,7 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   document.getElementById("rating_label").innerText = "Rating: ";
   document.getElementById("comment_label").innerText = "Comments: ";
   
-  if (!reviews) {
+  if (!reviews || reviews.length == 0) {
     const noReviews = document.createElement('p');
     noReviews.innerHTML = 'No reviews yet!';
     container.appendChild(noReviews);
@@ -182,7 +187,7 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
 		ul.removeChild(ul.lastChild);
 	}
 	
-  console.log(reviews);
+  //console.log(reviews);
   reviews.forEach(review => {
     ul.appendChild(createReviewHTML(review));
   });
@@ -193,57 +198,101 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
  * Create new review form HTML and add it to the webpage.
  */
 addReviewHTML = (id = self.restaurant.id) => {
-	console.log("review for " + id);
+	//console.log("review for " + id);
   
   const new_review = document.getElementById('new_review');
   if(new_review) new_review.parentNode.removeChild(new_review);
 	
-  const review_form = document.createElement('div');
-  review_form.setAttribute('id', 'new_review');
+  const review_div = document.createElement('div');
+  review_div.setAttribute('id', 'new_review');
+  review_div.setAttribute('role', 'add new review');
+  
+  const review_form = document.createElement('form');
+  review_form.setAttribute('action', '');
+  
+  const field_set = document.createElement('fieldset');
+  field_set.setAttribute('id', 'field_set');
+  
+  const legend = document.createElement('legend');
+  field_set.setAttribute('id', 'legend');
+  
+  const legend_text = document.createTextNode("Add New Review");
+  legend.appendChild(legend_text);
+  field_set.appendChild(legend);
+  
+  const block_author = document.createElement('div');
+  block_author.className = "form_div";
   
   const review_author = document.createElement('input');
   review_author.setAttribute('type', 'text');
   review_author.setAttribute('id', 'author');
-  review_form.appendChild(review_author);
+  block_author.appendChild(review_author);
   
   const label_author = document.createElement('label');
   label_author.setAttribute('for', 'author');
   label_author.setAttribute('id', 'author_label');
-  review_form.insertBefore(label_author, review_author);
+  block_author.insertBefore(label_author, review_author);
+  
+  field_set.appendChild(block_author);
    
+  const block_rating = document.createElement('div');
+  block_rating.className = "form_div";
+    
+  const num_span = document.createElement('span');
+  num_span.setAttribute('id', 'num_span');
+  const num_span_text = document.createTextNode("1      2      3      4      5");
+  num_span.appendChild(num_span_text);
+  
+  field_set.appendChild(num_span);
+  
   const rating = document.createElement('input');
   rating.setAttribute('type', 'range');
   rating.setAttribute('id', 'rating');
   rating.setAttribute('min', '1');
   rating.setAttribute('max', '5');
-  review_form.appendChild(rating);
+  block_rating.appendChild(rating);
   
   const label_rating = document.createElement('label');
   label_rating.setAttribute('for', 'rating');
   label_rating.setAttribute('id', 'rating_label');
-  review_form.insertBefore(label_rating, rating)
+  block_rating.insertBefore(label_rating, rating)
+  
+  field_set.appendChild(block_rating);
+  
+  const block_text = document.createElement('div');
+  block_text.className = "form_div";
   
   const comments = document.createElement('textarea');
   comments.setAttribute('type', 'text');
   comments.setAttribute('id', 'comment');
   comments.setAttribute('rows', '5');
-  comments.setAttribute('cold', '40');
-  review_form.appendChild(comments);
+  comments.setAttribute('cold', '50');
+  block_text.appendChild(comments);
   
   const label_comments = document.createElement('label');
   label_comments.setAttribute('for', 'comment');
   label_comments.setAttribute('id', 'comment_label');
-  review_form.insertBefore(label_comments, comments);
+  block_text.insertBefore(label_comments, comments);
   
+  field_set.appendChild(block_text);
+  
+  const block_submit = document.createElement('div');
+  block_submit.className = "form_div";
   
   const submit_review = document.createElement('input');
   submit_review.setAttribute('type', 'button'); 
   submit_review.setAttribute('id', 'submit_button');
   submit_review.setAttribute('value', 'Add Review');
   submit_review.setAttribute('onclick', 'addReview(' + id +');');
-  review_form.appendChild(submit_review);
+  block_submit.appendChild(submit_review);
+  
+  field_set.appendChild(block_submit);
+  
+  review_form.appendChild(field_set);
+  
+  review_div.appendChild(review_form);
       
-  return review_form;
+  return review_div;
 }
 
 addReview = (id) => {
@@ -263,7 +312,7 @@ addReview = (id) => {
 	  document.getElementById("rating").value = 5;
 	  document.getElementById("comment").value = '';
 	  DBHelper.addReview(body);
-	  
+	  console.log("body: "+body);
 	  location.reload();
   }
 }
