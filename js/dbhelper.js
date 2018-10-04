@@ -22,8 +22,9 @@ class DBHelper {
 	var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
 		var restaurantStore = upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
 		var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-		var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'id', autoIncrement: true });
+		var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'createdAt'});
 		reviewsStore.createIndex('store_request', 'store_request');
+		pendingStore.createIndex('createdAt', 'createdAt');
 	});
         
     dbPromise.then(db => {//console.log(db);
@@ -71,7 +72,7 @@ class DBHelper {
 			DBHelper.fetchReviewsById(restaurant.id, (error, reviews) => {
 				if(reviews){
 					restaurant.reviews = reviews;
-					//console.log(reviews);
+					console.log(reviews);
 				}else{
 					console.log(error)
 				}				
@@ -186,17 +187,18 @@ class DBHelper {
 	}).then(function getPenging(cursor){
 		if(!cursor) return reviews;
 		var body = cursor.value.body;
+		var method = cursor.value.method;
 		var url = cursor.value.url;
 		//console.log("url: "+url);
-		if(body && url.indexOf("reviews") > -1){
+		if(body && method != "DELETE" && url.indexOf("reviews") > -1){
 			//console.log("push review");
-			reviews.push(body);							
+			reviews.push(JSON.parse(body));							
 		}		
 		return cursor.continue().then(getPenging);							
 	}).then(
 		(offline_reviews) => {
 			//console.log("!reviews: "+(!reviews));
-			//console.log("offline_reviews: "+offline_reviews);
+			console.log("offline_reviews: "+offline_reviews);
 			get_reviews(id, offline_reviews);
 			async function get_reviews(id, offline_reviews){			
 				try{
@@ -344,30 +346,34 @@ class DBHelper {
 	  //console.log(`setting ${is_favorite} favorite`);
     const url = `${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${is_favorite}`;
     const method = "PUT";
-    DBHelper.updateOnlineDB(url, method, body);
+	const reviewDate = '';
+    DBHelper.updateOnlineDB(url, method, body, reviewDate);
   }
   
   static addReview(body){
 	const url = `${DBHelper.DATABASE_URL}/reviews/`;
     const method = "POST";
-    DBHelper.updateOnlineDB(url, method, body);
+	const reviewDate = '';
+    DBHelper.updateOnlineDB(url, method, body, reviewDate);
   }
   
-  static deleteReview(id){
+  static deleteReview(id, reviewDate){
 	const url = `${DBHelper.DATABASE_URL}/reviews/${id}`;
     const method = "DELETE";
-    DBHelper.updateOnlineDB(url, method);
+	const body = '';
+    DBHelper.updateOnlineDB(url, method, body, reviewDate);
   }
   
-  static updateOnlineDB(url, method, body = ''){ 
+  static updateOnlineDB(url, method, body, reviewDate){ 
 	let dbPromise=idb.open('restraurant_db', 1);
 	const body_val = JSON.stringify(body);
 	console.log("dbh body: "+body_val);
+	if(reviewDate=='') {var reviewDate = body.createdAt;console.log("reviewDate: "+reviewDate);}
 	//DBHelper.updateOfflineDB(url, method, body_val);
 	
 	fetch(url, {method: method, body: body_val}).then(response => {
 		if(!response.ok && !response.redirected){
-			DBHelper.updateOfflineDB(url, method, body_val);
+			DBHelper.updateOfflineDB(url, method, body_val, reviewDate);
 			return;
 		}		
 		//console.log("response: "+response);
@@ -381,7 +387,7 @@ class DBHelper {
 				console.log("cursor: "+cursor);
 				if(!cursor) return;
 				 
-				var recId = cursor.value.id;
+				var recId = cursor.value.createdAt;
 				var url = cursor.value.url;
 				var method = cursor.value.method;
 				var body = (cursor.value.method == 'PUT')? '' : cursor.value.body;
@@ -392,14 +398,14 @@ class DBHelper {
 							if(!response.ok && !response.redirected){
 								return;
 							}	
-							//console.log("response ok");
+							console.log("response ok");
 							
 							dbPromise.then(db => {
 								var tx_delete=db.transaction('pending_store', 'readwrite');
 								var pendingStore=tx_delete.objectStore('pending_store');
 								
 								pendingStore.delete(recId);
-								//console.log("delete id: "+recId)
+								console.log("delete id: "+recId)
 							})
 						});	
 				}else{
@@ -412,32 +418,49 @@ class DBHelper {
 		  console.log(e);
 		})
 	).catch(e => {		
-		DBHelper.updateOfflineDB(url, method, body_val);
+		DBHelper.updateOfflineDB(url, method, body_val, reviewDate);
 		console.log(e);
 	})	
   }
   
-  static updateOfflineDB(url, method, body){
+  static updateOfflineDB(url, method, body, reviewDate){
 	let dbPromise=idb.open('restraurant_db', 1);
 	  
 	dbPromise.then(db => {
 		//console.log("Saving offline");
 		var tx_write_offline=db.transaction('pending_store', 'readwrite');
 		var pendingStore=tx_write_offline.objectStore('pending_store');
+		var obj;
 		if(url.indexOf("is_favorite") > -1){
 			pendingStore.put({
 				url: url,
 				method: method,
-				body: body
+				body: body,
+				createdAt: reviewDate
 			})
-		}else{
+		}else if(method != "DELETE"){
 			pendingStore.add({
 				url: url,
 				method: method,
-				body: body
+				body: body,
+				createdAt: reviewDate
 			})
+		}else if(method == "DELETE"){
+			pendingStore.add({
+				url: url,
+				method: method,
+				body: body,
+				createdAt: Date.now()
+			})
+			getId(reviewDate);
+			async function getId(recId){
+				var tx_delete_offline=db.transaction('pending_store', 'readwrite');
+				var pendingStore=tx_delete_offline.objectStore('pending_store');
+				
+				console.log("del reviewDate: "+ reviewDate);
+				pendingStore.delete(recId);
+			}
 		}
-		
 	}).catch(e => {
       console.log(e);
     })

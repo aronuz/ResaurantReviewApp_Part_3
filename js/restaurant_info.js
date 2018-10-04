@@ -88,7 +88,7 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   
   const img_name = DBHelper.imageUrlForRestaurant(restaurant)
   
-  source_webp.srcset = img_name + "-100pc_big.webp";
+  source_webp.srcset = img_name + "-400_mid.webp";
   source_webp.type = "image/webp";
   
   source_jpeg.srcset = img_name + "-200_small.jpg 200w, " + img_name + "-400_mid.jpg 400w, " + img_name + "-100pc_big.jpg 800w";
@@ -305,7 +305,8 @@ addReview = (id) => {
 		  restaurant_id: id,
 		  name: name,
 		  rating: rating,
-		  comments: comment
+		  comments: comment,
+		  createdAt: Date.now()
 	  }
 	  
 	  document.getElementById("author").value = '';
@@ -317,8 +318,8 @@ addReview = (id) => {
   }
 }
 
-deleteReview = (id) => {
-  DBHelper.deleteReview(id);
+deleteReview = (id, reviewDate) => {
+  DBHelper.deleteReview(id, reviewDate);
   location.reload();
 }
 
@@ -332,7 +333,8 @@ createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  const dateUTC = new Date(review.createdAt);
+  date.innerHTML = dateUTC;
   li.appendChild(date);
 
   const rating = document.createElement('p');
@@ -346,8 +348,8 @@ createReviewHTML = (review) => {
   const delete_review = document.createElement('input');
   delete_review.setAttribute('type', 'button'); 
   delete_review.setAttribute('class', 'delete_button');
-  delete_review.setAttribute('value', 'Delete');
-  delete_review.setAttribute('onclick', `deleteReview(${review.id});`);
+  delete_review.setAttribute('value', 'Delete');console.log("review.date: "+review.createdAt);
+  delete_review.setAttribute('onclick', `deleteReview(${review.id}, ${review.createdAt});`);
   li.appendChild(delete_review); 
   
   return li;
