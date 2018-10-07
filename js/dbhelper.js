@@ -14,45 +14,52 @@ class DBHelper {
   }
 
   /**
-   * Fetch all restaurants.
+   * Fetc  h all restaurants.
    */
-  static fetchRestaurants(callback){
-    var restaurants = [];
-	
-	var dbPromise=idb.open('restraurant_db', 1, upgradeDb => {
-		var restaurantStore = upgradeDb.createObjectStore('restraurant_store', { keyPath: 'id'});
-		var reviewsStore = upgradeDb.createObjectStore('reviews_store', { keyPath: 'store_request'});
-		var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'createdAt'});
-		reviewsStore.createIndex('store_request', 'store_request');
-		pendingStore.createIndex('createdAt', 'createdAt');
-	});
-        
-    dbPromise.then(db => {//console.log(db);
-      var tx_read=db.transaction('restraurant_store');
-      var restraurantStore=tx_read.objectStore('restraurant_store');
-      return restraurantStore.getAll() || restaurants;
-    }).then(async function(restaurants){
-       if (!restaurants || restaurants.length === 0) {
-          var response = await fetch(DBHelper.DATABASE_URL + '/restaurants');
-          var restaurants = await response.json();
-         
-          dbPromise.then(db => {
-              //console.log(db);
-              var tx_write=db.transaction('restraurant_store', 'readwrite');
-              var restraurantStore=tx_write.objectStore('restraurant_store');
-              restaurants.forEach(restaurant => {restraurantStore.put(restaurant)});
-         });
-      }
-	//console.log(restaurants);                                      
-      return restaurants;
-    }).then(function(response){
-      //console.log(response);
-      return response; //.json();
-    }).then(restaurants => {      
-      callback(null, restaurants);
-    }).catch(e => {
-      callback(e, null);
-    })     
+  static fetchRestaurants(callback, id){
+	  if(id){
+		  fetch(DBHelper.DATABASE_URL + `/restaurants/${id}?id=${id}`, {method: "GET"}).then(response => {
+			response.json().then(restaurant => {
+				console.log(restaurant);
+				callback(null, restaurant);
+			})		  
+		  })
+	  }else{
+			var restaurants = [];
+			
+			var dbPromise=idb.open('restaurant_db', 1, upgradeDb => {
+				var restaurantStore = upgradeDb.createObjectStore('restaurant_store', { keyPath: 'id'});
+				var pendingStore = upgradeDb.createObjectStore('pending_store', { keyPath: 'createdAt'});
+				pendingStore.createIndex('createdAt', 'createdAt');
+			});
+				
+			dbPromise.then(db => {//console.log(db);
+			  var tx_read=db.transaction('restaurant_store');
+			  var restaurantStore=tx_read.objectStore('restaurant_store');
+			  return restaurantStore.getAll() || restaurants;
+			}).then(async function(restaurants){
+			   if (!restaurants || restaurants.length === 0) {
+				  var response = await fetch(DBHelper.DATABASE_URL + '/restaurants');
+				  var restaurants = await response.json();
+				 
+				  dbPromise.then(db => {
+					  //console.log(db);
+					  var tx_write=db.transaction('restaurant_store', 'readwrite');
+					  var restaurantStore=tx_write.objectStore('restaurant_store');
+					  restaurants.forEach(restaurant => {restaurantStore.put(restaurant)});
+				 });
+			  }
+			//console.log(restaurants);                                      
+			  return restaurants;
+			}).then(function(response){
+			  //console.log(response);
+			  return response; //.json();
+			}).then(restaurants => {      
+			  callback(null, restaurants);
+			}).catch(e => {
+			  callback(e, null);
+			})     
+	  }
   }
 
   /**
@@ -64,8 +71,9 @@ class DBHelper {
       if (error) {
         callback(error, null);
       } else {
-		  //console.log("restaurants fetched");
-        let restaurant = restaurants.find(r => r.id == id);
+		console.log("restaurants fetched");
+		let restaurant = restaurants;
+		
         if (restaurant) { // Got the restaurant
 			restaurant.isfavorite = null;
 			//console.log("restaurant: "+restaurant.id);
@@ -79,7 +87,7 @@ class DBHelper {
 			});
 			
 			
-			let dbPromise=idb.open('restraurant_db', 1);					
+			let dbPromise=idb.open('restaurant_db', 1);					
 			let favorite_restaurant_ids = [];
 			
 			dbPromise.then(db => {
@@ -170,14 +178,14 @@ class DBHelper {
           callback('Restaurant does not exist', null);
         }
       }
-    });
+    }, id);
   }
   
    /**
    * Fetch a restaurant reviews by its ID.
    */
   static fetchReviewsById(id, callback) {
-	let dbPromise=idb.open('restraurant_db', 1);
+	let dbPromise=idb.open('restaurant_db', 1);
 	let reviews = [];
     // fetch all restaurants with proper error handling.
     dbPromise.then(db => {
@@ -365,7 +373,7 @@ class DBHelper {
   }
   
   static updateOnlineDB(url, method, body, reviewDate){ 
-	let dbPromise=idb.open('restraurant_db', 1);
+	let dbPromise=idb.open('restaurant_db', 1);
 	const body_val = JSON.stringify(body);
 	console.log("dbh body: "+body_val);
 	if(reviewDate=='') {var reviewDate = body.createdAt;console.log("reviewDate: "+reviewDate);}
@@ -424,7 +432,7 @@ class DBHelper {
   }
   
   static updateOfflineDB(url, method, body, reviewDate){
-	let dbPromise=idb.open('restraurant_db', 1);
+	let dbPromise=idb.open('restaurant_db', 1);
 	  
 	dbPromise.then(db => {
 		//console.log("Saving offline");

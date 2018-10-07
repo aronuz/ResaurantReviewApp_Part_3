@@ -70,7 +70,7 @@ if (!String.prototype.startsWith) {
   };
 }
 
-let dbPromise=idb.open('restraurant_db', 1);
+let dbPromise=idb.open('restaurant_db', 1);
 	
 self.addEventListener("install", event => { 
 	
@@ -107,70 +107,92 @@ self.addEventListener("install", event => {
 
 self.addEventListener("fetch", event => {
 	console.log('Fetching');	
-	if (event.request.method != 'GET' || event.request.url.indexOf("reviews") > -1 || event.request.url.indexOf("map") > -1) return;					   
-
-	event.respondWith(
-		caches.match(event.request)
-			.then(function(response) {
-				// Cache hit - return response
-				if (response) {
-				  return response;
-				}
-				
-				var fetchRequestToDB = event.request.clone();
-				
+	if(event.request.method != 'GET') return;
+	const constructURL = new URL(event.request.url);
+	const port = constructURL.port;
+	
+	if(port == '1337'){
+		if(event.request.url.indexOf("reviews") == -1 && event.request.url.indexOf("is_favorite") == -1){
+			const url_id = constructURL.searchParams.get("id");
+			console.log("url_id: "+ url_id);
+			event.respondWith(
 				dbPromise.then(db => {
-					var tx_read=db.transaction('reviews_get'); 
-					var reviewsStore=tx_read.objectStore('reviews_store');
-					
-					return storeIndex.get(fetchRequestToDB);
-				}).then(idbResponse => {      
-					return new Response(idbResponse.store_response);
-				}).catch(e => {
-					console.error("IDB Fail: " + e);
-				})
-
-				// IMPORTANT: Clone the request. A request is a stream and
-				// can only be consumed once. Since we are consuming this
-				// once by cache and once by the browser for fetch, we need
-				// to clone the response.
-				var fetchRequest = event.request.clone();
-
-				return fetch(fetchRequest).then(
-				  function(response) {
-					// Check if we received a valid response
-					if(!response || response.status !== 200 || response.type !== 'basic') {
-					  return response;
-					}
-					
-					// IMPORTANT: Clone the response. A response is a stream
-					// and because we want the browser to consume the response
-					// as well as the cache consuming the response, we need
-					// to clone it so we have two streams.
-					var responseToCache = response.clone();
-					
-					fetchRequest.json().then( resp => {
-						dbPromise.then(db => {
-							var tx_write=db.transaction('reviews_get', 'readwrite'); 
-							var reviewsStore=tx_write.objectStore('reviews_store');
-							
-							reviewsStore.put({
-								store_request: event.request,
-								store_response: resp
+					var tx_read=db.transaction('restaurant_store'); 
+					var readStore=tx_read.objectStore('restaurant_store');
+					console.log(readStore.get(parseInt(url_id)));
+					return readStore.get(parseInt(url_id));
+				}).then(data => {
+					console.log(data);
+					return data || fetch(event.request)
+						.then(fetchResponse => fetchResponse.json())
+						.then(json => {
+							return dbPromise.then(db => {
+								var tx_write = db.transaction("restaurant_store", "readwrite");
+								var writeStore = tx_write.objectStore("restaurant_store");
+								writeStore.put({id: parseInt(url_id), data: json});
+								return json;
 							});
-							return tx_write.complete;
-						}).then(complete => {      
-							console.log("db write success: " + complete);
-						}).catch(e => {
-							console.error("IDB Fail: " + e);
-						})
+						});
+				}).then(db_response => {
+					console.log(db_response);
+					return new Response(JSON.stringify(db_response));
+				}).catch(error => {
+					return new Response("Error fetching data", {status: 500});
+				})
+			);
+		}
+	}else if(event.request.url.indexOf("map") == -1){
+		event.waitUntil(
+			caches.keys().then(function (keys) {     
+				return Promise.all(
+					old_caches = keys.filter(function (key) {
+						return key.startsWith("reviews-v");
 					})
-					
-					return response;
-				  }
 				);
+				old_caches.forEach(function (key, index) {
+					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
+					old_caches[index] = version_num;   
+				})
+				//get latest version number
+				version_num = (Math.max.apply(Math, old_caches)).toString();
+			}).then(function() {
+				console.log("fetch version_num:" + version_num);
 			})
-    );
+		);
+		
+		event.respondWith(
+			caches.match(event.request).then(function(cached) {       
+				var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
+		  
+				console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
+				return cached || networked;
+
+				function networkFetch(response) {
+					var cacheCopy = response.clone();
+					
+					console.log('fetched from network.', event.request.url);
+
+					caches.open('reviews-v' + version_num).then(function add(cache) {
+						cache.put(event.request, cacheCopy);
+					}).then(function() {
+						console.log('Response cached.', event.request.url);
+					});
+
+					return response;
+				}
+
+				function fetchFail() {
+					console.log('Fetch failed.');
+
+					return new Response('<h1>No Response</h1>', {
+						status: 404,
+						statusText: 'Resource Not Found',
+						headers: new Headers({'Content-Type': 'text/html'})
+					});
+				}
+			})
+		);	
+	}
 	
 });
 
