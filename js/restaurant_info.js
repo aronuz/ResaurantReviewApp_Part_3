@@ -193,7 +193,7 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
   const review_title = document.getElementById('review_title');
   if(review_title) review_title.parentNode.removeChild(review_title);
   
-  const title = document.createElement('h2');
+  const title = document.createElement('h3');
   title.setAttribute("id", "review_title");
   title.innerHTML = 'Reviews';
   container.appendChild(title);

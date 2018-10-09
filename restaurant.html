@@ -33,11 +33,11 @@
     </div>
     
     <!-- Beginning nav -->
-    <nav>
+    <nav role="navigation" id="breadcrumb" aria-label="breadcrumb">
       <h1><a href="/">Restaurant Reviews</a></h1>
     
       <!-- Beginning breadcrumb -->
-      <ul role="navigation" id="breadcrumb" >
+      <ul>
         <li><a href="/" aria-label="back to restaurant list">Home</a></li>
       </ul>
       <!-- End breadcrumb -->
@@ -54,7 +54,7 @@
          <div class="box box-about">
             <!-- Beginning restaurant -->
             <section id="restaurant-container">
-              <h1 aria-label="restaurant name" id="restaurant-name"></h1>
+              <h2 aria-label="restaurant name" id="restaurant-name"></h2>
               <picture id="restaurant-img"></picture>
               <p aria-label="restaurant cuisine" id="restaurant-cuisine"></p>
               <p  aria-label="restaurant address" id="restaurant-address"></p>
