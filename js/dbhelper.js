@@ -20,7 +20,7 @@ class DBHelper {
 	  if(id){
 		  fetch(DBHelper.DATABASE_URL + `/restaurants/${id}?id=${id}`, {method: "GET"}).then(response => {
 			response.json().then(restaurant => {
-				console.log(restaurant);
+				//console.log(restaurant);
 				callback(null, restaurant);
 			})		  
 		  })
@@ -71,21 +71,12 @@ class DBHelper {
       if (error) {
         callback(error, null);
       } else {
-		console.log("restaurants fetched");
+		//console.log("restaurants fetched");
 		let restaurant = restaurants;
 		
         if (restaurant) { // Got the restaurant
 			restaurant.isfavorite = null;
 			//console.log("restaurant: "+restaurant.id);
-			DBHelper.fetchReviewsById(restaurant.id, (error, reviews) => {
-				if(reviews){
-					restaurant.reviews = reviews;
-					console.log(reviews);
-				}else{
-					console.log(error)
-				}				
-			});
-			
 			
 			let dbPromise=idb.open('restaurant_db', 1);					
 			let favorite_restaurant_ids = [];
@@ -206,7 +197,7 @@ class DBHelper {
 	}).then(
 		(offline_reviews) => {
 			//console.log("!reviews: "+(!reviews));
-			console.log("offline_reviews: "+offline_reviews);
+			//console.log("offline_reviews: "+offline_reviews);
 			get_reviews(id, offline_reviews);
 			async function get_reviews(id, offline_reviews){			
 				try{
@@ -375,8 +366,8 @@ class DBHelper {
   static updateOnlineDB(url, method, body, reviewDate){ 
 	let dbPromise=idb.open('restaurant_db', 1);
 	const body_val = JSON.stringify(body);
-	console.log("dbh body: "+body_val);
-	if(reviewDate=='') {var reviewDate = body.createdAt;console.log("reviewDate: "+reviewDate);}
+	//console.log("dbh body: "+body_val);
+	if(reviewDate=='') {var reviewDate = body.createdAt;}
 	//DBHelper.updateOfflineDB(url, method, body_val);
 	
 	fetch(url, {method: method, body: body_val}).then(response => {
@@ -392,7 +383,7 @@ class DBHelper {
 		  return pendingStore.openCursor();
 		}).then(
 			function getPenging(cursor){
-				console.log("cursor: "+cursor);
+				//console.log("cursor: "+cursor);
 				if(!cursor) return;
 				 
 				var recId = cursor.value.createdAt;
@@ -400,7 +391,16 @@ class DBHelper {
 				var method = cursor.value.method;
 				var body = (cursor.value.method == 'PUT')? '' : cursor.value.body;
 				//console.log("url: "+url+" method: "+method+" body: "+JSON.stringify(body));
-				if(url && method && body){
+				if(method == 'DELETE' && url.indexOf('undefined') > -1){
+					dbPromise.then(db => {
+						var tx_delete=db.transaction('pending_store', 'readwrite');
+						var pendingStore=tx_delete.objectStore('pending_store');
+						
+						pendingStore.delete(recId);
+						console.log("delete id: "+recId)
+						
+					})
+				}else if(url && method && body){
 
 						fetch(url, {method: method, body: body}).then(response => {
 							if(!response.ok && !response.redirected){
@@ -422,6 +422,7 @@ class DBHelper {
 				
 				return cursor.continue().then(getPenging);				
 			}
+		).then(function(){console.log('no cursor.');}
 		).catch(e => {
 		  console.log(e);
 		})
@@ -435,7 +436,7 @@ class DBHelper {
 	let dbPromise=idb.open('restaurant_db', 1);
 	  
 	dbPromise.then(db => {
-		//console.log("Saving offline");
+		console.log("Saving offline");
 		var tx_write_offline=db.transaction('pending_store', 'readwrite');
 		var pendingStore=tx_write_offline.objectStore('pending_store');
 		var obj;
@@ -446,7 +447,7 @@ class DBHelper {
 				body: body,
 				createdAt: reviewDate
 			})
-		}else if(method != "DELETE"){
+		}else if(method == "POST"){
 			pendingStore.add({
 				url: url,
 				method: method,
@@ -461,15 +462,17 @@ class DBHelper {
 				createdAt: Date.now()
 			})
 			getId(reviewDate);
-			async function getId(recId){
+			function getId(recId){
 				var tx_delete_offline=db.transaction('pending_store', 'readwrite');
 				var pendingStore=tx_delete_offline.objectStore('pending_store');
 				
-				console.log("del reviewDate: "+ reviewDate);
+				console.log("del reviewDate: "+ recId);
 				pendingStore.delete(recId);
 			}
 		}
-	}).catch(e => {
+	}).then(
+		() => {location.reload();}
+	).catch(e => {
       console.log(e);
     })
   }	

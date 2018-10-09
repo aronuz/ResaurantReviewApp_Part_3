@@ -8,7 +8,11 @@ var cacheScope = [
 		'/',
         '/index.html',
         '/restaurant.html',
+		'/favicon.ico',
 		'/css/styles_all.css',
+		'/css/styles_max500px.css',
+		'/css/styles_min501px.css',
+		'/css/styles_min801px.css',
 		'/images/icons/star.png',
 		'/images/icons/blankstar.png',
 		'/images/1-200_small.jpg',
@@ -80,7 +84,7 @@ self.addEventListener("install", event => {
 			Promise.all(
 				old_caches = keys.filter(key => key.startsWith("reviews-v"))
 			).then(old_caches => {
-				console.log("Filtered 'reviews' caches");
+				//console.log("Filtered 'reviews' caches");
 				old_caches.forEach((key, index) => {
 					version_num = parseInt(key.substr(key.indexOf("-v") + 2)); 
 					versions[index] = version_num;   
@@ -91,7 +95,7 @@ self.addEventListener("install", event => {
 				console.log("next version_num: " + version_num);
 				return version_num;
 			}).then(version_num => {
-				console.log("installing version_num:" + version_num);
+				//console.log("installing version_num:" + version_num);
 				caches.open('reviews-v' + version_num)
 				.then(cache => {
 					console.log('Opened cache');
@@ -114,15 +118,15 @@ self.addEventListener("fetch", event => {
 	if(port == '1337'){
 		if(event.request.url.indexOf("reviews") == -1 && event.request.url.indexOf("is_favorite") == -1){
 			const url_id = constructURL.searchParams.get("id");
-			console.log("url_id: "+ url_id);
+			//console.log("url_id: "+ url_id);
 			event.respondWith(
 				dbPromise.then(db => {
 					var tx_read=db.transaction('restaurant_store'); 
 					var readStore=tx_read.objectStore('restaurant_store');
-					console.log(readStore.get(parseInt(url_id)));
+					//console.log(readStore.get(parseInt(url_id)));
 					return readStore.get(parseInt(url_id));
 				}).then(data => {
-					console.log(data);
+					//console.log(data);
 					return data || fetch(event.request)
 						.then(fetchResponse => fetchResponse.json())
 						.then(json => {
@@ -134,14 +138,16 @@ self.addEventListener("fetch", event => {
 							});
 						});
 				}).then(db_response => {
-					console.log(db_response);
+					//console.log(db_response);
 					return new Response(JSON.stringify(db_response));
 				}).catch(error => {
 					return new Response("Error fetching data", {status: 500});
 				})
 			);
+		}else{
+			return new Response("Non-cachable data", {status: 500});
 		}
-	}else if(event.request.url.indexOf("map") == -1){
+	}else if(event.request.url.indexOf("staticmap") > -1 || event.request.url.indexOf("map") == -1){
 		event.waitUntil(
 			caches.keys().then(function (keys) {     
 				return Promise.all(
@@ -162,7 +168,7 @@ self.addEventListener("fetch", event => {
 		
 		event.respondWith(
 			caches.match(event.request).then(function(cached) {       
-				var networked = fetch(event.request).then(networkFetch, fetchFail).catch(fetchFail);
+				var networked = fetch(event.request).then(networkFetch).catch(fetchFail);
 		  
 				console.log('fetched from', cached ? 'cache' : 'network', event.request.url);
 				return cached || networked;
@@ -170,12 +176,12 @@ self.addEventListener("fetch", event => {
 				function networkFetch(response) {
 					var cacheCopy = response.clone();
 					
-					console.log('fetched from network.', event.request.url);
+					//console.log('fetched from network.', event.request.url);
 
 					caches.open('reviews-v' + version_num).then(function add(cache) {
 						cache.put(event.request, cacheCopy);
 					}).then(function() {
-						console.log('Response cached.', event.request.url);
+						//console.log('Response cached.', event.request.url);
 					});
 
 					return response;

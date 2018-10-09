@@ -94,10 +94,12 @@
     };
 	
 	function loadMap(){
-		document.body.removeAttribute("onmouseenter");
-		var scriptTag = document.createElement('script');
-		scriptTag.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA-X9vPVc6-iXGUr68TQBd95cAbsvdwGoA&libraries=places&callback=initMap";
-		document.body.appendChild(scriptTag);
+		if(navigator.onLine){
+			document.body.removeAttribute("onmouseenter");
+			var scriptTag = document.createElement('script');
+			scriptTag.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyA-X9vPVc6-iXGUr68TQBd95cAbsvdwGoA&libraries=places&callback=initMap";
+			document.body.appendChild(scriptTag);
+		}
 	}
     
     document.getElementById("footer").getElementsByTagName("a")[0].onblur= () => {

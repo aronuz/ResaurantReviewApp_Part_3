@@ -10,7 +10,7 @@ window.initMap = () => {
 	self.latlng=restaurant.latlng;
     if (error) { // Got an error!
       console.error(error);
-    } else {
+    } else if(navigator.onLine){
 		document.body.addEventListener("mouseenter", loadMap);	
 		fillBreadcrumb(); 
     }
@@ -48,10 +48,40 @@ fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
+		// fill reviews
+		fillReviews();
 	  //setFavorite(self.restaurant.id, self.restaurant.isfavorite, false);
 	  callback(null, restaurant)
     });
   }
+}
+
+fillReviews = (restaurant = self.restaurant) => {
+	fetchReviews(restaurant.id);
+		
+	async function fetchReviews(this_id){
+		//console.log("fetchReviews");
+		let get_reviews = await getReviews(this_id);
+		//console.log("getReviews: "+get_reviews);
+		restaurant.reviews = get_reviews;
+		fillReviewsHTML();
+	}
+	
+	function getReviews(this_id){
+		//console.log("getReviews");
+		return new Promise(resolve => {
+			DBHelper.fetchReviewsById(this_id, (error, reviews) => {
+				if(reviews){
+					//restaurant.reviews = reviews;
+					//console.log(reviews);
+					resolve(reviews);						
+				}else{
+					console.log(error)
+					resolve([]);
+				}				
+			});					
+		})					
+	}			
 }
 
 /**
@@ -108,8 +138,6 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-  // fill reviews
-  fillReviewsHTML();
 }
 
 setFavorite = (id = self.restaurant.id, isfavorite = !self.restaurant.isfavorite) => {
@@ -159,6 +187,7 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
  * Create all reviews HTML and add them to the webpage.
  */
 fillReviewsHTML = (reviews = self.restaurant.reviews) => { 
+	//console.log(reviews);
   const container = document.getElementById('reviews-container');
 	
   const review_title = document.getElementById('review_title');
@@ -313,14 +342,14 @@ addReview = (id) => {
 	  document.getElementById("rating").value = 5;
 	  document.getElementById("comment").value = '';
 	  DBHelper.addReview(body);
-	  console.log("body: "+body);
-	  location.reload();
+	  //console.log("body: "+body);
+	  //location.reload();
   }
 }
 
 deleteReview = (id, reviewDate) => {
   DBHelper.deleteReview(id, reviewDate);
-  location.reload();
+  //location.reload();
 }
 
 /**
@@ -348,7 +377,7 @@ createReviewHTML = (review) => {
   const delete_review = document.createElement('input');
   delete_review.setAttribute('type', 'button'); 
   delete_review.setAttribute('class', 'delete_button');
-  delete_review.setAttribute('value', 'Delete');console.log("review.date: "+review.createdAt);
+  delete_review.setAttribute('value', 'Delete');
   delete_review.setAttribute('onclick', `deleteReview(${review.id}, ${review.createdAt});`);
   li.appendChild(delete_review); 
   
