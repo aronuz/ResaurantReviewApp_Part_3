@@ -234,7 +234,7 @@ addReviewHTML = (id = self.restaurant.id) => {
 	
   const review_div = document.createElement('div');
   review_div.setAttribute('id', 'new_review');
-  review_div.setAttribute('role', 'add new review');
+  review_div.setAttribute('aria-label', 'new review form');
   
   const review_form = document.createElement('form');
   review_form.setAttribute('action', '');
@@ -388,7 +388,7 @@ createReviewHTML = (review) => {
  * Add restaurant name to the breadcrumb navigation menu
  */
 fillBreadcrumb = (restaurant=self.restaurant) => {
-  const breadcrumb = document.getElementById('breadcrumb');
+  const breadcrumb = document.getElementById('nav_ul');
   const li = document.createElement('li');
   li.innerHTML = restaurant.name;
   breadcrumb.appendChild(li);
