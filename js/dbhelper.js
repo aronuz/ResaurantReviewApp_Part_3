@@ -23,7 +23,9 @@ class DBHelper {
 				//console.log(restaurant);
 				callback(null, restaurant);
 			})		  
-		  })
+		  }).catch(error => {
+			  callback(error, null);
+		  });
 	  }else{
 			var restaurants = [];
 			
